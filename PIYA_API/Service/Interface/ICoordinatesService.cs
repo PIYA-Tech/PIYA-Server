@@ -1,6 +1,5 @@
-﻿namespace PIYA_API.Service.Interface
+﻿namespace PIYA_API.Service.Interface;
+
+public interface ICoordinatesService
 {
-    public interface ICoordinatesService
-    {
-    }
 }
