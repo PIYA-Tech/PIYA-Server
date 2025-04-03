@@ -4,5 +4,5 @@ public interface IJwtService
 {
     public string GenerateSecurityToken(string username);
     public string ValidateToken(string token);
-    public string GetId(string token);
+    public Guid GetId(string token);
 }

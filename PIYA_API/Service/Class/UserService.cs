@@ -14,7 +14,11 @@ public class UserService(PharmacyApiDbContext dbContext) : IUserService
 
     public Task<User> Create(User user, string password)
     {
+        // validation
+        //if (string.IsNullOrWhiteSpace(password))
+        //    throw new AppException("Password is required");
         throw new NotImplementedException();
+
     }
 
     public Task Delete(int id)
