@@ -17,7 +17,7 @@ public class PharmacyController(ISearchService searchService, IPharmacyService p
         var pharmacy = await _pharmacyService.GetById(id);
         if (pharmacy == null)
         {
-            return NotFound();
+            return NotFound("Pharmacy not found.");
         }
         return Ok(pharmacy);
     }

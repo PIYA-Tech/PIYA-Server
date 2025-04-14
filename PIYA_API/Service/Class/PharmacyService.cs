@@ -7,14 +7,14 @@ namespace PIYA_API.Service.Class;
 
 public class PharmacyService(PharmacyApiDbContext dbContext) : IPharmacyService
 {
-    public async Task<Pharmacy> GetById(Guid id)
+    public async Task<Pharmacy?> GetById(Guid id)
     {
         var pharmacy = await dbContext.Pharmacies
             .Include(p => p.Company)
             .Include(p => p.Manager)
             .Include(p => p.Staff)
             .FirstOrDefaultAsync(p => p.Id == id);
-        return pharmacy == null ? throw new Exception("Pharmacy not found") : pharmacy;
+        return pharmacy ?? null;
     }
 
     public Task<List<Pharmacy>> GetByCompany(Guid companyId)

@@ -19,6 +19,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ICoordinatesService, CoordinatesService>();
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
+builder.Services.AddScoped<IPharmacyCompanyService,  PharmacyCompanyService>();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
