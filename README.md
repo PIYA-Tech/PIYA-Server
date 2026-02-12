@@ -166,7 +166,7 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 
 ## Tech Stack
 
-- **Framework:** ASP.NET Core 9.0
+- **Framework:** ASP.NET Core 10.0
 - **Database:** PostgreSQL 15+
 - **ORM:** Entity Framework Core 9.0
 - **Documentation:** Swagger/OpenAPI
