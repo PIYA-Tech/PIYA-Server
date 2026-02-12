@@ -10,16 +10,16 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 
 ### Authentication & Security
 
-- [ ] **Fix JWT Token Generation**
+- [x] **Fix JWT Token Generation**
 - [ ] **Implement Password Hashing**
-- [ ] **Add JWT Authentication Middleware**
-- [ ] **Implement Token Validation**
-- [ ] **Fix Token Expiration Access**
+- [x] **Add JWT Authentication Middleware**
+- [x] **Implement Token Validation**
+- [x] **Fix Token Expiration Access**
 - [ ] **Add Refresh Token Logic**
 
 ### Configuration
 
-- [ ] **Create appsettings.json Template**
+- [x] **Create appsettings.json Template**
 - [ ] **Add Connection String Documentation**
 - [ ] **Environment-Specific Settings**
 
@@ -145,7 +145,7 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 - [ ] PharmacyService (90% complete)
 - [ ] PharmacyCompanyService (empty)
 - [ ] UserService (stub only)
-- [ ] JwtService (broken)
+- [x] JwtService (complete)
 - [ ] SearchService (not implemented)
 - [ ] CoordinatesService (not implemented)
 
@@ -170,4 +170,4 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 - **Database:** PostgreSQL 15+
 - **ORM:** Entity Framework Core 9.0
 - **Documentation:** Swagger/OpenAPI
-- **Authentication:** JWT (in progress)
+- **Authentication:** JWT
