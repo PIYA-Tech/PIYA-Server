@@ -2,7 +2,7 @@
 
 A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL.
 
-## Progress: ![Progress](https://geps.dev/progress/5)
+## Progress: ![Progress](https://geps.dev/progress/13)
 
 ---
 
