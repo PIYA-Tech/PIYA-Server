@@ -2,7 +2,7 @@
 
 A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL.
 
-## Progress: ![Progress](https://geps.dev/progress/13)
+## Progress: ![Progress](https://geps.dev/progress/19)
 
 ---
 
@@ -11,7 +11,7 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 ### Authentication & Security
 
 - [x] **Fix JWT Token Generation**
-- [ ] **Implement Password Hashing**
+- [x] **Implement Password Hashing**
 - [x] **Add JWT Authentication Middleware**
 - [x] **Implement Token Validation**
 - [x] **Fix Token Expiration Access**
@@ -21,7 +21,7 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 
 - [x] **Create appsettings.json Template**
 - [ ] **Add Connection String Documentation**
-- [ ] **Environment-Specific Settings**
+- [x] **Environment-Specific Settings**
 
 ---
 
@@ -29,13 +29,13 @@ A Pharmacy Information & Location API built with ASP.NET Core 9.0 and PostgreSQL
 
 ### User Management
 
-- [ ] **UserService.Authenticate()**
-- [ ] **UserService.Create()**
-- [ ] **UserService.GetById()**
-- [ ] **UserService.Update()**
-- [ ] **UserService.Delete()**
-- [ ] **Create UserController**
-- [ ] **Create AuthController**
+- [x] **UserService.Authenticate()**
+- [x] **UserService.Create()**
+- [x] **UserService.GetById()**
+- [x] **UserService.Update()**
+- [x] **UserService.Delete()**
+- [x] **Create UserController**
+- [x] **Create AuthController**
 
 ### Search & Geolocation
 

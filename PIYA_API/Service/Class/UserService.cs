@@ -1,38 +1,138 @@
 ﻿using PIYA_API.Data;
 using PIYA_API.Model;
 using PIYA_API.Service.Interface;
+using Microsoft.EntityFrameworkCore;
 
 namespace PIYA_API.Service.Class;
 
-public class UserService(PharmacyApiDbContext dbContext) : IUserService
+public class UserService(PharmacyApiDbContext dbContext, IPasswordHasher passwordHasher) : IUserService
 {
     private readonly PharmacyApiDbContext _dbContext = dbContext;
-    public Task<User> Authenticate(string username, string password)
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+
+    public async Task<User> Authenticate(string username, string password)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username is required");
+
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required");
+
+        var user = await _dbContext.Users
+            .SingleOrDefaultAsync(x => x.Username == username);
+
+        // User not found
+        if (user == null)
+            return null!;
+
+        // Verify password
+        if (!_passwordHasher.VerifyPassword(password, user.PasswordHash))
+            return null!;
+
+        // Authentication successful
+        return user;
     }
 
-    public Task<User> Create(User user, string password)
+    public async Task<User> Create(User user, string password)
     {
-        // validation
-        //if (string.IsNullOrWhiteSpace(password))
-        //    throw new AppException("Password is required");
-        throw new NotImplementedException();
+        // Validation
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required");
 
+        if (password.Length < 8)
+            throw new ArgumentException("Password must be at least 8 characters long");
+
+        if (string.IsNullOrWhiteSpace(user.Username))
+            throw new ArgumentException("Username is required");
+
+        if (string.IsNullOrWhiteSpace(user.Email))
+            throw new ArgumentException("Email is required");
+
+        // Check if username already exists
+        if (await _dbContext.Users.AnyAsync(x => x.Username == user.Username))
+            throw new InvalidOperationException($"Username '{user.Username}' is already taken");
+
+        // Check if email already exists
+        if (await _dbContext.Users.AnyAsync(x => x.Email == user.Email))
+            throw new InvalidOperationException($"Email '{user.Email}' is already registered");
+
+        // Hash password
+        user.PasswordHash = _passwordHasher.HashPassword(password);
+        user.CreatedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        // Save user
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        return user;
     }
 
-    public Task Delete(int id)
+    public async Task Delete(int id)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FindAsync(id);
+        if (user == null)
+            throw new KeyNotFoundException($"User with ID {id} not found");
+
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
     }
 
-    public Task<User> GetById(int id)
+    public async Task<User> GetById(int id)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FindAsync(id);
+        if (user == null)
+            throw new KeyNotFoundException($"User with ID {id} not found");
+
+        return user;
     }
 
-    public Task Update(User user, string? password = null)
+    public async Task Update(User user, string? password = null)
     {
-        throw new NotImplementedException();
+        var existingUser = await _dbContext.Users.FindAsync(user.Id);
+        if (existingUser == null)
+            throw new KeyNotFoundException($"User with ID {user.Id} not found");
+
+        // Update username if changed and not already taken
+        if (!string.IsNullOrWhiteSpace(user.Username) && user.Username != existingUser.Username)
+        {
+            if (await _dbContext.Users.AnyAsync(x => x.Username == user.Username))
+                throw new InvalidOperationException($"Username '{user.Username}' is already taken");
+
+            existingUser.Username = user.Username;
+        }
+
+        // Update email if changed and not already taken
+        if (!string.IsNullOrWhiteSpace(user.Email) && user.Email != existingUser.Email)
+        {
+            if (await _dbContext.Users.AnyAsync(x => x.Email == user.Email))
+                throw new InvalidOperationException($"Email '{user.Email}' is already registered");
+
+            existingUser.Email = user.Email;
+        }
+
+        // Update password if provided
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            if (password.Length < 8)
+                throw new ArgumentException("Password must be at least 8 characters long");
+
+            existingUser.PasswordHash = _passwordHasher.HashPassword(password);
+        }
+
+        // Update other fields
+        if (!string.IsNullOrWhiteSpace(user.FirstName))
+            existingUser.FirstName = user.FirstName;
+
+        if (!string.IsNullOrWhiteSpace(user.LastName))
+            existingUser.LastName = user.LastName;
+
+        if (!string.IsNullOrWhiteSpace(user.PhoneNumber))
+            existingUser.PhoneNumber = user.PhoneNumber;
+
+        existingUser.UpdatedAt = DateTime.UtcNow;
+
+        _dbContext.Users.Update(existingUser);
+        await _dbContext.SaveChangesAsync();
     }
 }
