@@ -40,11 +40,11 @@ graph LR
     A[Patient Registration] --> B[Appointment Booking]
     B --> C[Doctor Visit]
     C --> D[Prescription Creation]
-    D --> E[Pharmacy Search]
-    E --> F[QR Code Generation]
-    F --> G[Pharmacy Scan]
-    G --> H[Medication Fulfillment]
-    H --> I[Digital Certificate]
+    D --> E[Digital Certificate]
+    E --> F[Pharmacy Search]
+    F --> G[QR Code Generation]
+    G --> H[Pharmacy Scan]
+    H --> I[Medication Fulfillment]
 ```
 
 ### Security Model
