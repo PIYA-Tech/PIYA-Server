@@ -73,27 +73,27 @@ graph LR
 - [x] **Audit Logging System**
 - [x] **QR Token Generation & Validation**
 
-### Appointment System (NEW)
+### Appointment System (Service Implemented ✅)
 
-- [ ] **Appointment Booking API**
-- [ ] **Doctor Availability Management**
-- [ ] **Real-time Conflict Detection**
-- [ ] **Appointment Status Tracking (Scheduled/Completed/Cancelled/NoShow)**
-- [ ] **Calendar Integration**
-- [ ] **Booking Confirmation Notifications**
-- [ ] **Appointment History**
-- [ ] **Multi-hospital Support**
+- [x] **Appointment Booking API**
+- [x] **Doctor Availability Management**
+- [x] **Real-time Conflict Detection**
+- [x] **Appointment Status Tracking (Scheduled/Completed/Cancelled/NoShow)**
+- [x] **Calendar Integration** (iCal/ICS export, Google Calendar & Outlook URL generation)
+- [x] **Booking Confirmation Notifications**
+- [x] **Appointment History**
+- [x] **Multi-hospital Support**
 
-### Prescription Management (NEW)
+### Prescription Management (Service Implemented ✅)
 
-- [ ] **Digital Prescription Creation**
-- [ ] **Prescription-Patient-Doctor Linking**
-- [ ] **Prescription Status Management (Active/Used/Expired/Cancelled)**
-- [ ] **Multi-medication Support**
-- [ ] **Dosage & Instructions Tracking**
-- [ ] **Prescription Expiration Logic**
-- [ ] **Prescription Verification Endpoint**
-- [ ] **Prescription History**
+- [x] **Digital Prescription Creation**
+- [x] **Prescription-Patient-Doctor Linking**
+- [x] **Prescription Status Management (Active/Used/Expired/Cancelled)**
+- [x] **Multi-medication Support**
+- [x] **Dosage & Instructions Tracking**
+- [x] **Prescription Expiration Logic**
+- [x] **Prescription Verification Endpoint**
+- [x] **Prescription History**
 
 ### Hospital & Doctor Management (NEW)
 
@@ -105,16 +105,16 @@ graph LR
 - [ ] **Doctor Availability Sync (Online/Offline)**
 - [ ] **Doctor Dashboard**
 
-### Medication Database (NEW - CRITICAL)
+### Medication Database (Service Implemented ✅)
 
-- [ ] **Medication Entity Model**
+- [x] **Medication Entity Model**
 - [ ] **Azerbaijan Pharmaceutical Registry Integration**
-- [ ] **Medication Search & Autocomplete**
-- [ ] **Active Ingredient Tracking**
-- [ ] **ATC Code Classification**
-- [ ] **Prescription-Required Flag**
-- [ ] **Medication Alternatives/Generics**
-- [ ] **Medication Master Data Management**
+- [x] **Medication Search & Autocomplete**
+- [x] **Active Ingredient Tracking**
+- [x] **ATC Code Classification**
+- [x] **Prescription-Required Flag**
+- [x] **Medication Alternatives/Generics**
+- [x] **Medication Master Data Management**
 
 ### Pharmacy Inventory System (NEW)
 
@@ -314,15 +314,15 @@ graph LR
 - [x] **PharmacyCompany** - Pharmacy chains
 - [x] **Coordinates** - Geolocation data
 
-### New Healthcare Entities (To Be Implemented)
+### Healthcare Entities (All Implemented)
 
-- [ ] **Hospital** - Medical facilities with departments
-- [ ] **Appointment** - Patient-Doctor bookings with conflict prevention
-- [ ] **Prescription** - Digital prescriptions with lifecycle management
-- [ ] **PrescriptionItem** - Individual medications in prescription
-- [ ] **Medication** - Master medication database (Azerbaijan registry)
-- [ ] **PharmacyInventory** - Real-time stock tracking per pharmacy
-- [ ] **DoctorNote** - Medical certificates with public QR verification (no
+- [x] **Hospital** - Medical facilities with departments
+- [x] **Appointment** - Patient-Doctor bookings with conflict prevention
+- [x] **Prescription** - Digital prescriptions with lifecycle management
+- [x] **PrescriptionItem** - Individual medications in prescription
+- [x] **Medication** - Master medication database (Azerbaijan registry)
+- [x] **PharmacyInventory** - Real-time stock tracking per pharmacy
+- [x] **DoctorNote** - Medical certificates with public QR verification (no
   external integration)
 - [x] **AuditLog** - Comprehensive audit trail for healthcare transactions
 - [x] **TwoFactorAuth** - Multi-factor authentication configuration
@@ -397,12 +397,12 @@ graph LR
 
 **Healthcare Operations:**
 
-- [ ] Hospital
-- [ ] Appointment
-- [ ] Prescription
-- [ ] PrescriptionItem
-- [ ] Medication
-- [ ] DoctorNote
+- [x] Hospital
+- [x] Appointment
+- [x] Prescription
+- [x] PrescriptionItem
+- [x] Medication
+- [x] DoctorNote
 
 **Pharmacy Operations:**
 
@@ -437,6 +437,7 @@ graph LR
 - [x] **QRService** ✅ (Time-limited QR generation/validation)
 - [x] **DoctorNoteService** ✅ (Medical certificate with public QR verification)
 - [x] **NotificationService** ✅ (Email/SMS/Push)
+- [x] **CalendarService** ✅ (iCal/Google Calendar/Outlook integration)
 - [ ] PharmacyCompanyService (Currently empty)
 
 **Implemented:**

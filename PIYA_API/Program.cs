@@ -77,6 +77,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IQRService, QRService>();
 builder.Services.AddScoped<IDoctorNoteService, DoctorNoteService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
 
 // Configure Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>
