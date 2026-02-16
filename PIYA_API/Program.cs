@@ -43,7 +43,20 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+// Configure Authorization with Role-Based Policies
+builder.Services.AddAuthorization(options =>
+{
+    // Role-based policies
+    options.AddPolicy("PatientOnly", policy => policy.RequireRole("Patient"));
+    options.AddPolicy("DoctorOnly", policy => policy.RequireRole("Doctor"));
+    options.AddPolicy("PharmacistOnly", policy => policy.RequireRole("Pharmacist"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    
+    // Combined role policies
+    options.AddPolicy("DoctorOrAdmin", policy => policy.RequireRole("Doctor", "Admin"));
+    options.AddPolicy("PharmacistOrAdmin", policy => policy.RequireRole("Pharmacist", "Admin"));
+    options.AddPolicy("HealthcareProfessional", policy => policy.RequireRole("Doctor", "Pharmacist", "Admin"));
+});
 
 // Register Services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -53,6 +66,17 @@ builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ICoordinatesService, CoordinatesService>();
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 builder.Services.AddScoped<IPharmacyCompanyService,  PharmacyCompanyService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
+
+// Healthcare Services
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
+builder.Services.AddScoped<IMedicationService, MedicationService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IQRService, QRService>();
+builder.Services.AddScoped<IDoctorNoteService, DoctorNoteService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Configure Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>

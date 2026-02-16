@@ -6,15 +6,25 @@ namespace PIYA_API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IUserService userService, IJwtService jwtService, IConfiguration configuration) : ControllerBase
+public class AuthController(
+    IUserService userService,
+    IJwtService jwtService,
+    IConfiguration configuration,
+    IAuditService auditService,
+    ITwoFactorAuthService twoFactorService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IConfiguration _configuration = configuration;
+    private readonly IAuditService _auditService = auditService;
+    private readonly ITwoFactorAuthService _twoFactorService = twoFactorService;
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
         try
         {
             var user = new User
@@ -25,6 +35,7 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
                 LastName = request.LastName,
                 PhoneNumber = request.PhoneNumber,
                 DateOfBirth = request.DateOfBirth,
+                Role = request.Role ?? UserRole.Patient, // Default to Patient role
                 TokensInfo = new Token
                 {
                     AccessToken = string.Empty,
@@ -35,6 +46,16 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
             };
 
             var createdUser = await _userService.Create(user, request.Password);
+            
+            // Log registration
+            await _auditService.LogSecurityEventAsync(
+                "UserRegistered",
+                createdUser.Id,
+                ipAddress,
+                userAgent,
+                true,
+                $"New user registered: {createdUser.Username} with role {createdUser.Role}"
+            );
             
             var tokenResponse = _jwtService.GenerateSecurityToken(createdUser.Username);
 
@@ -48,6 +69,7 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
                 UserId = createdUser.Id,
                 Username = createdUser.Username,
                 Email = createdUser.Email,
+                Role = createdUser.Role.ToString(),
                 Token = tokenResponse.AccessToken,
                 RefreshToken = tokenResponse.RefreshToken,
                 ExpiresAt = tokenResponse.ExpiresAt
@@ -55,14 +77,38 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
         }
         catch (ArgumentException ex)
         {
+            await _auditService.LogSecurityEventAsync(
+                "RegistrationFailed",
+                null,
+                ipAddress,
+                userAgent,
+                false,
+                $"Registration failed: {ex.Message}"
+            );
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
+            await _auditService.LogSecurityEventAsync(
+                "RegistrationFailed",
+                null,
+                ipAddress,
+                userAgent,
+                false,
+                $"Registration conflict: {ex.Message}"
+            );
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            await _auditService.LogSecurityEventAsync(
+                "RegistrationFailed",
+                null,
+                ipAddress,
+                userAgent,
+                false,
+                $"Registration error: {ex.Message}"
+            );
             return StatusCode(500, new { message = "An error occurred during registration", error = ex.Message });
         }
     }
@@ -70,13 +116,46 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
         try
         {
             var user = await _userService.Authenticate(request.Username, request.Password);
 
             if (user == null)
             {
+                await _auditService.LogSecurityEventAsync(
+                    "LoginFailed",
+                    null,
+                    ipAddress,
+                    userAgent,
+                    false,
+                    $"Invalid credentials for username: {request.Username}"
+                );
                 return Unauthorized(new { message = "Invalid username or password" });
+            }
+
+            // Check if 2FA is enabled
+            var requires2FA = await _twoFactorService.IsTwoFactorEnabledAsync(user.Id);
+            if (requires2FA)
+            {
+                // Don't generate full token yet - return challenge for 2FA
+                await _auditService.LogSecurityEventAsync(
+                    "LoginPending2FA",
+                    user.Id,
+                    ipAddress,
+                    userAgent,
+                    true,
+                    "Login successful, awaiting 2FA verification"
+                );
+
+                return Ok(new
+                {
+                    requires2FA = true,
+                    userId = user.Id,
+                    message = "Please provide 2FA code"
+                });
             }
 
             var tokenResponse = _jwtService.GenerateSecurityToken(user.Username);
@@ -86,11 +165,21 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
                 return StatusCode(500, new { message = "Failed to generate token" });
             }
 
+            await _auditService.LogSecurityEventAsync(
+                "LoginSuccess",
+                user.Id,
+                ipAddress,
+                userAgent,
+                true,
+                $"User logged in: {user.Username}"
+            );
+
             return Ok(new AuthResponse
             {
                 UserId = user.Id,
                 Username = user.Username,
                 Email = user.Email,
+                Role = user.Role.ToString(),
                 Token = tokenResponse.AccessToken,
                 RefreshToken = tokenResponse.RefreshToken,
                 ExpiresAt = tokenResponse.ExpiresAt
@@ -98,10 +187,26 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
         }
         catch (ArgumentException ex)
         {
+            await _auditService.LogSecurityEventAsync(
+                "LoginFailed",
+                null,
+                ipAddress,
+                userAgent,
+                false,
+                $"Login error: {ex.Message}"
+            );
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            await _auditService.LogSecurityEventAsync(
+                "LoginFailed",
+                null,
+                ipAddress,
+                userAgent,
+                false,
+                $"Login error: {ex.Message}"
+            );
             return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
         }
     }
@@ -171,6 +276,7 @@ public class RegisterRequest
     public required string PhoneNumber { get; set; }
     public required DateTime DateOfBirth { get; set; }
     public string? DeviceInfo { get; set; }
+    public UserRole? Role { get; set; } // Optional, defaults to Patient
 }
 
 public class LoginRequest
@@ -197,4 +303,5 @@ public class AuthResponse
     public required string Token { get; set; }
     public DateTime ExpiresAt { get; set; }
     public string? RefreshToken { get; set; }
+    public string? Role { get; set; }
 }

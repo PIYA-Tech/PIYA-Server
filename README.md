@@ -6,7 +6,7 @@
 Built with ASP.NET Core 9.0 and PostgreSQL | Healthcare Ecosystem |
 HIPAA-Compliant Ready
 
-## Progress: ![Progress](https://geps.dev/progress/28)
+## Progress: ![Progress](https://geps.dev/progress/38)
 
 ---
 
@@ -68,10 +68,10 @@ graph LR
 - [x] **Implement Token Validation**
 - [x] **Fix Token Expiration Access**
 - [x] **Add Refresh Token Logic**
-- [ ] **Role-Based Authorization (Patient/Doctor/Pharmacist/Admin)**
-- [ ] **Multi-Factor Authentication**
-- [ ] **Audit Logging System**
-- [ ] **QR Token Generation & Validation**
+- [x] **Role-Based Authorization (Patient/Doctor/Pharmacist/Admin)**
+- [x] **Multi-Factor Authentication**
+- [x] **Audit Logging System**
+- [x] **QR Token Generation & Validation**
 
 ### Appointment System (NEW)
 
@@ -245,9 +245,9 @@ graph LR
 
 ### Authorization & Roles
 
-- [ ] **Role-Based Authorization (RBAC)**
-- [ ] **User Role Assignment**
-- [ ] **Policy-Based Authorization**
+- [x] **Role-Based Authorization (RBAC)**
+- [x] **User Role Assignment**
+- [x] **Policy-Based Authorization**
 - [ ] **Pharmacy Manager Assignment**
 - [ ] **Staff Management**
 - [ ] **Doctor Permissions**
@@ -271,7 +271,7 @@ graph LR
 
 - [ ] **Email Verification**
 - [ ] **Password Reset Flow**
-- [ ] **Two-Factor Authentication**
+- [x] **Two-Factor Authentication**
 - [ ] **File Upload (Medical Documents)**
 - [ ] **Caching (Redis)**
 - [ ] **Rate Limiting**
@@ -324,7 +324,8 @@ graph LR
 - [ ] **PharmacyInventory** - Real-time stock tracking per pharmacy
 - [ ] **DoctorNote** - Medical certificates with public QR verification (no
   external integration)
-- [ ] **AuditLog** - Comprehensive audit trail for healthcare transactions
+- [x] **AuditLog** - Comprehensive audit trail for healthcare transactions
+- [x] **TwoFactorAuth** - Multi-factor authentication configuration
 
 ---
 
@@ -415,7 +416,7 @@ graph LR
 
 **System:**
 
-- [ ] AuditLog
+- [x] AuditLog
 
 ### Services (Interfaces + Implementations)
 
@@ -429,15 +430,19 @@ graph LR
 
 **To Be Implemented:**
 
-- [ ] AppointmentService (Booking + conflict detection)
-- [ ] PrescriptionService (Digital prescription CRUD)
-- [ ] MedicationService (Medication database management)
-- [ ] InventoryService (Pharmacy stock tracking)
-- [ ] QRService (Time-limited QR generation/validation)
-- [ ] DoctorNoteService (Medical certificate with public QR verification)
-- [ ] NotificationService (Email/SMS/Push)
-- [ ] AuditService (Healthcare transaction logging)
+- [x] **AppointmentService** ✅ (Booking + conflict detection)
+- [x] **PrescriptionService** ✅ (Digital prescription CRUD)
+- [x] **MedicationService** ✅ (Medication database management)
+- [x] **InventoryService** ✅ (Pharmacy stock tracking)
+- [x] **QRService** ✅ (Time-limited QR generation/validation)
+- [x] **DoctorNoteService** ✅ (Medical certificate with public QR verification)
+- [x] **NotificationService** ✅ (Email/SMS/Push)
 - [ ] PharmacyCompanyService (Currently empty)
+
+**Implemented:**
+
+- [x] AuditService (Healthcare transaction logging)
+- [x] TwoFactorAuthService (2FA management with TOTP/SMS/Email)
 
 ### Controllers
 
@@ -446,6 +451,8 @@ graph LR
 - [x] AuthController (Register/Login/Refresh/Validate)
 - [x] UserController (User CRUD + password change)
 - [x] PharmacyController (Partial - search endpoints)
+- [x] AuditController (Audit log retrieval - 5 endpoints)
+- [x] TwoFactorAuthController (2FA management - 8 endpoints)
 
 **To Be Implemented:**
 
@@ -464,8 +471,8 @@ graph LR
 - [x] PostgreSQL with EF Core
 - [x] Initial migration created
 - [x] DbContext configured
+- [x] RBAC, 2FA, and Audit logging migrations created
 - [ ] Healthcare entities migrations (pending)
-- [ ] Audit logging schema (pending)
 
 ---
 
@@ -523,16 +530,19 @@ Patient requests QR → Server generates HMAC-signed token (5-min expiry)
 
 ## Development Roadmap
 
-### Phase 1: Foundation (Current - 28% Complete)
+### Phase 1: Foundation (Current - 31% Complete)
 
 - [x] Authentication & JWT
 - [x] User management
 - [x] Pharmacy search & geolocation
 - [x] Password security
+- [x] Role-based authorization (RBAC)
+- [x] Two-factor authentication (2FA)
+- [x] Audit logging system
 
 ### Phase 2: Healthcare Core (Next)
 
-- [ ] Multi-role authorization
+- [x] Multi-role authorization
 - [ ] Appointment system
 - [ ] Prescription management
 - [ ] Hospital & doctor entities
@@ -554,7 +564,7 @@ Patient requests QR → Server generates HMAC-signed token (5-min expiry)
 
 ### Phase 5: Production Readiness
 
-- [ ] Comprehensive audit logging
+- [x] Comprehensive audit logging
 - [ ] GDPR compliance features
 - [ ] Performance optimization
 - [ ] Security hardening
@@ -594,8 +604,8 @@ Patient requests QR → Server generates HMAC-signed token (5-min expiry)
 ## Support & Contribution
 
 **Repository:** [PIYA-Tech/PIYA-Server](https://github.com/PIYA-Tech/PIYA-Server)
-**Current Branch:** master  
-**Build Status:** ✅ Passing
+**Current Branch:** master
+**Build Status:** [x] Passing
 
 For healthcare compliance questions, security concerns, or architectural
   decisions, please open an issue with appropriate tags.

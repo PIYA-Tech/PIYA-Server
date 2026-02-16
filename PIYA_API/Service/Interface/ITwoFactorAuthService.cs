@@ -1,0 +1,54 @@
+using PIYA_API.Model;
+
+namespace PIYA_API.Service.Interface;
+
+/// <summary>
+/// Service for Two-Factor Authentication (2FA)
+/// </summary>
+public interface ITwoFactorAuthService
+{
+    /// <summary>
+    /// Enable 2FA for a user and generate a secret key
+    /// </summary>
+    Task<(string SecretKey, string QrCodeUri, List<string> BackupCodes)> EnableTwoFactorAsync(Guid userId, TwoFactorMethod method = TwoFactorMethod.TOTP);
+    
+    /// <summary>
+    /// Disable 2FA for a user
+    /// </summary>
+    Task DisableTwoFactorAsync(Guid userId);
+    
+    /// <summary>
+    /// Verify a 2FA code
+    /// </summary>
+    Task<bool> VerifyCodeAsync(Guid userId, string code);
+    
+    /// <summary>
+    /// Verify a backup code
+    /// </summary>
+    Task<bool> VerifyBackupCodeAsync(Guid userId, string backupCode);
+    
+    /// <summary>
+    /// Generate new backup codes
+    /// </summary>
+    Task<List<string>> RegenerateBackupCodesAsync(Guid userId);
+    
+    /// <summary>
+    /// Send 2FA code via SMS
+    /// </summary>
+    Task<bool> SendSmsCodeAsync(Guid userId);
+    
+    /// <summary>
+    /// Send 2FA code via Email
+    /// </summary>
+    Task<bool> SendEmailCodeAsync(Guid userId);
+    
+    /// <summary>
+    /// Check if user has 2FA enabled
+    /// </summary>
+    Task<bool> IsTwoFactorEnabledAsync(Guid userId);
+    
+    /// <summary>
+    /// Get 2FA status for a user
+    /// </summary>
+    Task<TwoFactorAuth?> GetTwoFactorStatusAsync(Guid userId);
+}
