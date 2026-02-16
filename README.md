@@ -36,9 +36,15 @@ Patient → Doctor Appointment → Prescription → Pharmacy Fulfillment → Dig
 ### Healthcare Flow
 
 ```mermaid
-Patient Registration → Appointment Booking → Doctor Visit → Prescription Creation
-    → Pharmacy Search (Stock Match) → QR Code Generation → Pharmacy Scan
-    → Medication Fulfillment → Digital Certificate Issuance
+graph LR
+    A[Patient Registration] --> B[Appointment Booking]
+    B --> C[Doctor Visit]
+    C --> D[Prescription Creation]
+    D --> E[Pharmacy Search]
+    E --> F[QR Code Generation]
+    F --> G[Pharmacy Scan]
+    G --> H[Medication Fulfillment]
+    H --> I[Digital Certificate]
 ```
 
 ### Security Model
