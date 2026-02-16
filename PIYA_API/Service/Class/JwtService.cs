@@ -1,6 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PIYA_API.Data;
 using PIYA_API.Model;
@@ -13,7 +15,6 @@ public class JwtService(PharmacyApiDbContext dbContext, IConfiguration configura
     private readonly PharmacyApiDbContext _dbContext = dbContext;
     private readonly IConfiguration _configuration = configuration;
     
-    // Fallback values if not in configuration
     private const string DefaultSecretKey = "PIYA_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION_MIN_32_CHARS";
     private const string DefaultIssuer = "PIYA_API";
     private const string DefaultAudience = "PIYA_Clients";
@@ -25,7 +26,7 @@ public class JwtService(PharmacyApiDbContext dbContext, IConfiguration configura
         return tokenObj == null ? Guid.Empty : tokenObj.Id;
     }
 
-    public string? GenerateSecurityToken(string username)
+    public TokenResponse? GenerateSecurityToken(string username)
     {
         var user = _dbContext.Users.FirstOrDefault(u => u.Username == username);
         if (user == null)
@@ -69,10 +70,12 @@ public class JwtService(PharmacyApiDbContext dbContext, IConfiguration configura
         var jwtToken = new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
 
         // Save token to database
+        var refreshToken = GenerateRefreshToken();
         var tokenEntity = new Token
         {
             Id = Guid.NewGuid(),
             AccessToken = jwtToken,
+            RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes),
             CreationTime = DateTime.UtcNow,
             DeviceInfo = "Web" // Can be enhanced to capture actual device info
@@ -81,7 +84,63 @@ public class JwtService(PharmacyApiDbContext dbContext, IConfiguration configura
         _dbContext.Tokens.Add(tokenEntity);
         _dbContext.SaveChanges();
 
-        return jwtToken;
+        return new TokenResponse
+        {
+            AccessToken = jwtToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+        };
+    }
+
+    public string GenerateRefreshToken()
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        return Convert.ToBase64String(randomBytes);
+    }
+
+    public async Task<string?> RefreshAccessToken(string refreshToken)
+    {
+        var tokenEntity = await _dbContext.Tokens
+            .FirstOrDefaultAsync(t => t.RefreshToken == refreshToken);
+
+        if (tokenEntity == null)
+        {
+            return null;
+        }
+
+        // Check if refresh token is expired (refresh tokens valid for 7 days)
+        if (tokenEntity.CreationTime.AddDays(7) < DateTime.UtcNow)
+        {
+            return null;
+        }
+
+        // Find user by old token
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(tokenEntity.AccessToken);
+        var username = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+        if (string.IsNullOrEmpty(username))
+        {
+            return null;
+        }
+
+        // Generate new access token
+        var newTokenResponse = GenerateSecurityToken(username);
+
+        if (newTokenResponse == null)
+        {
+            return null;
+        }
+
+        // Update token entity with new access token
+        tokenEntity.AccessToken = newTokenResponse.AccessToken;
+        tokenEntity.ExpiresAt = newTokenResponse.ExpiresAt;
+
+        await _dbContext.SaveChangesAsync();
+
+        return newTokenResponse.AccessToken;
     }
 
     public string? ValidateToken(string token)

@@ -36,22 +36,21 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
 
             var createdUser = await _userService.Create(user, request.Password);
             
-            var token = _jwtService.GenerateSecurityToken(createdUser.Username);
+            var tokenResponse = _jwtService.GenerateSecurityToken(createdUser.Username);
 
-            if (token == null)
+            if (tokenResponse == null)
             {
                 return StatusCode(500, new { message = "Failed to generate token" });
             }
-
-            var expirationMinutes = int.TryParse(_configuration["Jwt:ExpirationMinutes"], out var mins) ? mins : 30;
 
             return Ok(new AuthResponse
             {
                 UserId = createdUser.Id,
                 Username = createdUser.Username,
                 Email = createdUser.Email,
-                Token = token,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+                Token = tokenResponse.AccessToken,
+                RefreshToken = tokenResponse.RefreshToken,
+                ExpiresAt = tokenResponse.ExpiresAt
             });
         }
         catch (ArgumentException ex)
@@ -80,22 +79,21 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
                 return Unauthorized(new { message = "Invalid username or password" });
             }
 
-            var token = _jwtService.GenerateSecurityToken(user.Username);
+            var tokenResponse = _jwtService.GenerateSecurityToken(user.Username);
 
-            if (token == null)
+            if (tokenResponse == null)
             {
                 return StatusCode(500, new { message = "Failed to generate token" });
             }
-
-            var expirationMinutes = int.TryParse(_configuration["Jwt:ExpirationMinutes"], out var mins) ? mins : 30;
 
             return Ok(new AuthResponse
             {
                 UserId = user.Id,
                 Username = user.Username,
                 Email = user.Email,
-                Token = token,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+                Token = tokenResponse.AccessToken,
+                RefreshToken = tokenResponse.RefreshToken,
+                ExpiresAt = tokenResponse.ExpiresAt
             });
         }
         catch (ArgumentException ex)
@@ -135,6 +133,32 @@ public class AuthController(IUserService userService, IJwtService jwtService, IC
             return BadRequest(new { message = "Token validation failed", error = ex.Message });
         }
     }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var newAccessToken = await _jwtService.RefreshAccessToken(request.RefreshToken);
+
+            if (newAccessToken == null)
+            {
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+
+            var expirationMinutes = int.TryParse(_configuration["Jwt:ExpirationMinutes"], out var mins) ? mins : 30;
+
+            return Ok(new
+            {
+                accessToken = newAccessToken,
+                expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred during token refresh", error = ex.Message });
+        }
+    }
 }
 
 public class RegisterRequest
@@ -160,6 +184,11 @@ public class ValidateTokenRequest
     public required string Token { get; set; }
 }
 
+public class RefreshTokenRequest
+{
+    public required string RefreshToken { get; set; }
+}
+
 public class AuthResponse
 {
     public Guid UserId { get; set; }
@@ -167,4 +196,5 @@ public class AuthResponse
     public required string Email { get; set; }
     public required string Token { get; set; }
     public DateTime ExpiresAt { get; set; }
+    public string? RefreshToken { get; set; }
 }
