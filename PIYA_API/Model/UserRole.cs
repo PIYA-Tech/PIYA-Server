@@ -8,5 +8,7 @@ public enum UserRole
     Patient = 1,
     Doctor = 2,
     Pharmacist = 3,
-    Admin = 4
+    PharmacyManager = 4,
+    Admin = 5,
+    SuperAdmin = 6
 }

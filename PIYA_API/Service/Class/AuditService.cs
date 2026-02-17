@@ -89,11 +89,11 @@ public class AuditService(PharmacyApiDbContext context, ILogger<AuditService> lo
     public async Task<List<AuditLog>> GetUserLogsAsync(Guid userId, int pageNumber = 1, int pageSize = 50)
     {
         return await _context.AuditLogs
+            .AsNoTracking()
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Include(a => a.User)
             .ToListAsync();
     }
 

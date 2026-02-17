@@ -38,6 +38,7 @@ public class AuthController(
                 Role = request.Role ?? UserRole.Patient, // Default to Patient role
                 TokensInfo = new Token
                 {
+                    Id = Guid.NewGuid(),
                     AccessToken = string.Empty,
                     RefreshToken = string.Empty,
                     ExpiresAt = DateTime.UtcNow,

@@ -24,6 +24,10 @@ namespace PIYA_API.Data
         public DbSet<InventoryHistory> InventoryHistories { get; set; }
         public DbSet<DoctorNote> DoctorNotes { get; set; }
         public DbSet<QRToken> QRTokens { get; set; }
+        
+        // Pharmacy Staff & Permissions
+        public DbSet<PharmacyStaff> PharmacyStaff { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,7 +42,7 @@ namespace PIYA_API.Data
 
             // User - DoctorProfile (One-to-One)
             modelBuilder.Entity<DoctorProfile>()
-                .HasOne<User>()
+                .HasOne(dp => dp.User)
                 .WithOne()
                 .HasForeignKey<DoctorProfile>(dp => dp.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -67,6 +71,54 @@ namespace PIYA_API.Data
 
             modelBuilder.Entity<AuditLog>()
                 .HasIndex(a => a.Action);
+            
+            // PharmacyStaff - Pharmacy relationship
+            modelBuilder.Entity<PharmacyStaff>()
+                .HasOne(ps => ps.Pharmacy)
+                .WithMany()
+                .HasForeignKey(ps => ps.PharmacyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // PharmacyStaff - User relationship
+            modelBuilder.Entity<PharmacyStaff>()
+                .HasOne(ps => ps.User)
+                .WithMany()
+                .HasForeignKey(ps => ps.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // UserPermission - User relationship
+            modelBuilder.Entity<UserPermission>()
+                .HasOne(up => up.User)
+                .WithMany()
+                .HasForeignKey(up => up.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // UserPermission - GrantedBy relationship
+            modelBuilder.Entity<UserPermission>()
+                .HasOne(up => up.GrantedBy)
+                .WithMany()
+                .HasForeignKey(up => up.GrantedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            // Indexes for PharmacyStaff
+            modelBuilder.Entity<PharmacyStaff>()
+                .HasIndex(ps => ps.PharmacyId);
+            
+            modelBuilder.Entity<PharmacyStaff>()
+                .HasIndex(ps => ps.UserId);
+            
+            modelBuilder.Entity<PharmacyStaff>()
+                .HasIndex(ps => new { ps.PharmacyId, ps.UserId });
+            
+            // Indexes for UserPermission
+            modelBuilder.Entity<UserPermission>()
+                .HasIndex(up => up.UserId);
+            
+            modelBuilder.Entity<UserPermission>()
+                .HasIndex(up => up.Permission);
+            
+            modelBuilder.Entity<UserPermission>()
+                .HasIndex(up => new { up.UserId, up.Permission });
         }
     }
 }

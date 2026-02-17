@@ -16,7 +16,7 @@
 Built with ASP.NET Core 9.0 and PostgreSQL | Healthcare Ecosystem |
 HIPAA-Compliant Ready
 
-## Progress: ![Progress](https://geps.dev/progress/66)
+## Progress: ![Progress](https://geps.dev/progress/68)
 
 ---
 
@@ -137,13 +137,21 @@ graph LR
 
 ### Pharmacy Inventory System (✅ COMPLETE)
 
-- [x] **PharmacyInventory Model** - Enhanced with ReorderQuantity, LowStockAlertTriggered, LastLowStockAlertAt + 2 new entities (InventoryBatch, InventoryHistory)
-- [x] **Real-time Stock Tracking** - FIFO batch deduction with user attribution and prescription linking
-- [x] **Low Stock Alerts** - Automatic alert triggering with auto-reset on restock, logged to AuditService
-- [x] **Inventory Update API** - 18 REST endpoints via PharmacyInventoryController (update, restock, decrease, batch management, history, alerts)
-- [x] **Stock History** - Complete audit trail with 7 transaction types (Restock, Sale, Adjustment, Return, Expired, Damaged, Transfer)
-- [x] **Expiration Date Tracking** - Per-batch expiration dates with automatic cleanup and expiring items alerts
-- [x] **Batch Number Management** - Full lot/batch tracking with supplier info, cost per unit, manufacturing/expiration dates, storage location
+- [x] **PharmacyInventory Model** - Enhanced with ReorderQuantity,
+  LowStockAlertTriggered, LastLowStockAlertAt + 2 new entities (InventoryBatch,
+  InventoryHistory)
+- [x] **Real-time Stock Tracking** - FIFO batch deduction with user attribution
+  and prescription linking
+- [x] **Low Stock Alerts** - Automatic alert triggering with auto-reset on
+  restock, logged to AuditService
+- [x] **Inventory Update API** - 18 REST endpoints via PharmacyInventoryController
+  (update, restock, decrease, batch management, history, alerts)
+- [x] **Stock History** - Complete audit trail with 7 transaction types
+  (Restock, Sale, Adjustment, Return, Expired, Damaged, Transfer)
+- [x] **Expiration Date Tracking** - Per-batch expiration dates with automatic
+  cleanup and expiring items alerts
+- [x] **Batch Number Management** - Full lot/batch tracking with supplier info,
+  cost per unit, manufacturing/expiration dates, storage location
 
 ### Smart Pharmacy Search (Service Implemented ✅)
 
@@ -280,15 +288,19 @@ graph LR
 - [ ] **Request Rate Limiting**
 - [ ] **API Documentation (Swagger Enhancements)**
 
-### Authorization & Roles
+### Authorization & Roles (✅ ENHANCED)
 
 - [x] **Role-Based Authorization (RBAC)**
 - [x] **User Role Assignment**
 - [x] **Policy-Based Authorization**
-- [ ] **Pharmacy Manager Assignment**
-- [ ] **Staff Management**
-- [ ] **Doctor Permissions**
-- [ ] **Admin Dashboard Access Control**
+- [x] **Pharmacy Manager Assignment** - PharmacyStaff model with role-based
+  assignment, manager transfer functionality
+- [x] **Staff Management** - Complete staff assignment system with
+  PharmacyStaffService (assign, remove, update, query operations)
+- [x] **Doctor Permissions** - Granular permission system with 30+ permission
+  types, role-based and explicit permissions
+- [x] **Admin Dashboard Access Control** - Permission-based access control for
+  dashboard features (CanAccessDashboard, CanManageUsers, CanViewAuditLogs, CanModifySettings)
 
 ### Data Enhancements
 

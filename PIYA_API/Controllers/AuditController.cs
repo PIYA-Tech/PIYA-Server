@@ -16,7 +16,7 @@ public class AuditController(IAuditService auditService) : ControllerBase
     /// Get audit logs for the current user
     /// </summary>
     [HttpGet("my-logs")]
-    public async Task<ActionResult<List<AuditLog>>> GetMyLogs(
+    public async Task<ActionResult> GetMyLogs(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -25,7 +25,27 @@ public class AuditController(IAuditService auditService) : ControllerBase
             return Unauthorized();
 
         var logs = await _auditService.GetUserLogsAsync(userId, pageNumber, pageSize);
-        return Ok(logs);
+        
+        // Return DTOs to avoid navigation property issues
+        var result = logs.Select(log => new
+        {
+            log.Id,
+            log.Action,
+            log.EntityType,
+            log.EntityId,
+            log.Description,
+            log.IpAddress,
+            log.UserAgent,
+            log.HttpMethod,
+            log.Endpoint,
+            log.StatusCode,
+            log.IsSuccess,
+            log.ErrorMessage,
+            log.Metadata,
+            log.CreatedAt
+        }).ToList();
+        
+        return Ok(result);
     }
 
     /// <summary>

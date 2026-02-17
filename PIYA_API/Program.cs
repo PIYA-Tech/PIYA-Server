@@ -8,9 +8,16 @@ using PIYA_API.Data;
 using PIYA_API.Service.Class;
 using PIYA_API.Service.Interface;
 
+// Enable legacy timestamp behavior for Npgsql to handle non-UTC DateTimes
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddOpenApi();
 
 // Add HttpClient factory for external API calls
@@ -74,6 +81,21 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+    
+    // Add logging for debugging
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"JWT Auth Failed: {context.Exception.Message}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            Console.WriteLine("JWT Token Validated Successfully");
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Configure Authorization with Role-Based Policies
@@ -114,6 +136,10 @@ builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IAzerbaijanPharmaceuticalRegistryService, AzerbaijanPharmaceuticalRegistryService>();
 builder.Services.AddScoped<IDoctorProfileService, DoctorProfileService>();
 builder.Services.AddScoped<IHospitalService, HospitalService>();
+
+// Access Control & Staff Management Services
+builder.Services.AddScoped<IPharmacyStaffService, PharmacyStaffService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // Configure Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>
@@ -160,7 +186,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Commented out for development
 app.UseAuthentication(); // Add this before UseAuthorization
 app.UseAuthorization();
 app.MapControllers();
