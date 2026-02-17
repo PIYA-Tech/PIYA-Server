@@ -138,6 +138,96 @@ public class UserController(IUserService userService) : ControllerBase
             return StatusCode(500, new { message = "An error occurred while changing password", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Assign role to user (Admin only)
+    /// </summary>
+    [HttpPost("{id}/assign-role")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleRequest request)
+    {
+        try
+        {
+            var user = await _userService.GetByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Validate role
+            if (!Enum.TryParse<UserRole>(request.Role, true, out var role))
+            {
+                return BadRequest(new { message = "Invalid role specified" });
+            }
+
+            user.Role = role;
+            await _userService.UpdateAsync(user);
+
+            return Ok(new { message = $"Role {request.Role} assigned successfully", userId = id, role = role.ToString() });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while assigning role", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get user's current role
+    /// </summary>
+    [HttpGet("{id}/role")]
+    public async Task<IActionResult> GetUserRole(Guid id)
+    {
+        try
+        {
+            var user = await _userService.GetByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(new { userId = id, role = user.Role.ToString() });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while retrieving role", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all users by role (Admin only)
+    /// </summary>
+    [HttpGet("by-role/{role}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUsersByRole(string role)
+    {
+        try
+        {
+            if (!Enum.TryParse<UserRole>(role, true, out var userRole))
+            {
+                return BadRequest(new { message = "Invalid role specified" });
+            }
+
+            var users = await _userService.GetUsersByRoleAsync(userRole);
+
+            return Ok(users.Select(u => new UserResponse
+            {
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                FirstName = u.FirstName,
+                MiddleName = u.MiddleName,
+                LastName = u.LastName,
+                PhoneNumber = u.PhoneNumber,
+                DateOfBirth = u.DateOfBirth,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while retrieving users", error = ex.Message });
+        }
+    }
 }
 
 public class UpdateUserRequest
@@ -155,6 +245,11 @@ public class ChangePasswordRequest
 {
     public required string OldPassword { get; set; }
     public required string NewPassword { get; set; }
+}
+
+public class AssignRoleRequest
+{
+    public required string Role { get; set; } // Patient, Doctor, Pharmacist, Admin, etc.
 }
 
 public class UserResponse

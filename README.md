@@ -1,7 +1,7 @@
 # PIYA Backend API
 
 **A Full Digital Healthcare Coordination Platform** - Connecting Patients,
- Doctors, Ho### Medication Database (Service Implemented ✅)
+ Doctors, Ho### Medication Database (Service Implemented [x])
 
 - [x] **Medication Entity Model**
 - [x] **Azerbaijan Pharmaceutical Registry Integration** (OpenData.az API -
@@ -105,7 +105,7 @@ graph LR
 - [x] **Prescription Verification Endpoint**
 - [x] **Prescription History**
 
-### Hospital & Doctor Management (Service Implemented ✅)
+### Hospital & Doctor Management (Service Implemented [x])
 
 - [x] **Hospital Entity & CRUD** (HospitalService with 10 methods: GetAll,
   GetById, GetByCity, GetByDepartment, GetActive, Create, Update, Delete,
@@ -122,7 +122,9 @@ graph LR
 - [x] **Doctor-Hospital Association** (DoctorProfile.HospitalIds many-to-many relationship)
 - [x] **Doctor Availability Sync (Online/Offline)** (DoctorAvailabilityStatus
   enum: Online, Offline, Busy, OnBreak, OnCall with real-time updates)
-- [ ] **Doctor Dashboard** (Controller pending - all service logic ready)
+- [x] **Doctor Dashboard** (DoctorDashboardController with 20 REST endpoints:
+  profile management, availability control, appointment handling, prescription
+  creation, patient management, and dashboard statistics)
 
 ### Medication Database (Service Implemented)
 
@@ -135,7 +137,7 @@ graph LR
 - [x] **Medication Alternatives/Generics**
 - [x] **Medication Master Data Management**
 
-### Pharmacy Inventory System (✅ COMPLETE)
+### Pharmacy Inventory System ([x] COMPLETE)
 
 - [x] **PharmacyInventory Model** - Enhanced with ReorderQuantity,
   LowStockAlertTriggered, LastLowStockAlertAt + 2 new entities (InventoryBatch,
@@ -153,7 +155,7 @@ graph LR
 - [x] **Batch Number Management** - Full lot/batch tracking with supplier info,
   cost per unit, manufacturing/expiration dates, storage location
 
-### Smart Pharmacy Search (Service Implemented ✅)
+### Smart Pharmacy Search (Service Implemented [x])
 
 - [x] **SearchService.SearchByCountry()**
 - [x] **SearchService.SearchByCity()**
@@ -167,7 +169,7 @@ graph LR
 - [x] **Real-time Inventory Integration** (Direct PharmacyInventory queries with
   stock validation)
 
-### QR Code System (✅ COMPLETE - HIGH SECURITY)
+### QR Code System ([x] COMPLETE - HIGH SECURITY)
 
 - [x] **Generate Time-Limited QR Tokens (5-min validity)**
   (GeneratePrescriptionQrTokenAsync + API endpoint)
@@ -190,21 +192,29 @@ graph LR
 - QRValidationController with 6 RESTful endpoints
 - Security features: Time-limited tokens (5 min), one-time use, IP/device tracking
 
-### Digital Medical Certificates (NEW)
+### Digital Medical Certificates ([x] COMPLETE)
 
-- [ ] **DoctorNote Model (Patient/Doctor/Appointment)**
-- [ ] **Public Verification Token Generation (32+ bytes, hashed)**
-- [ ] **QR Code for Public Verification**
-- [ ] **Note Status Management (Active/Revoked/Expired)**
-- [ ] **POST /api/doctor-notes (Doctor only)**
-- [ ] **GET /api/doctor-notes/{id} (Doctor/Patient)**
-- [ ] **POST /api/doctor-notes/{id}/revoke (Doctor only)**
-- [ ] **GET /api/doctor-notes/verify/{token} (Anonymous)**
-- [ ] **DoctorNotePublicDto (Minimal exposure)**
-- [ ] **ValidFrom/ValidTo Period Enforcement**
-- [ ] **Privacy-Controlled Visibility (Summary optional)**
-- [ ] **Tamper-Proof Token (HMAC or Hash-based)**
+- [x] **DoctorNote Model (Patient/Doctor/Appointment)**
+- [x] **Public Verification Token Generation (32+ bytes, hashed)**
+- [x] **QR Code for Public Verification**
+- [x] **Note Status Management (Active/Revoked/Expired)**
+- [x] **POST /api/doctor-notes (Doctor only)**
+- [x] **GET /api/doctor-notes/{id} (Doctor/Patient)**
+- [x] **POST /api/doctor-notes/{id}/revoke (Doctor only)**
+- [x] **GET /api/doctor-notes/verify/{token} (Anonymous)**
+- [x] **DoctorNotePublicDto (Minimal exposure)**
+- [x] **ValidFrom/ValidTo Period Enforcement**
+- [x] **Privacy-Controlled Visibility (Summary optional)**
+- [x] **Tamper-Proof Token (SHA-256 Hash-based)**
 - [ ] **Certificate PDF Export (Optional)**
+
+**Implementation Details:**
+
+- DoctorNote entity with 20+ fields (token hashing, privacy controls)
+- DoctorNoteService with 8 methods (create, verify, revoke, audit)
+- DoctorNoteController with 7 RESTful endpoints
+- Security features: SHA-256 hashed tokens, revocation support,
+  privacy-controlled data exposure
 
 **Design Principles:**
 
@@ -252,7 +262,7 @@ graph LR
 - [x] **UserService.Delete()**
 - [x] **Create UserController**
 - [x] **Create AuthController**
-- [ ] **User Role Assignment (Patient/Doctor/Pharmacist)**
+- [x] **User Role Assignment (Patient/Doctor/Pharmacist)**
 - [ ] **Doctor Profile Extended Fields**
 - [ ] **Pharmacist License Verification**
 
@@ -265,12 +275,13 @@ graph LR
 
 ### Pharmacy Company Management
 
-- [ ] **PharmacyCompanyService.GetById()**
-- [ ] **PharmacyCompanyService.Create()**
-- [ ] **PharmacyCompanyService.Update()**
-- [ ] **PharmacyCompanyService.Delete()**
-- [ ] **PharmacyCompanyService.GetAll()**
-- [ ] **PharmacyCompaniesController Endpoints**
+- [x] **PharmacyCompanyService.GetById()**
+- [x] **PharmacyCompanyService.Create()**
+- [x] **PharmacyCompanyService.Update()**
+- [x] **PharmacyCompanyService.Delete()**
+- [x] **PharmacyCompanyService.GetAll()**
+- [x] **PharmacyCompaniesController Endpoints** (6 REST endpoints: GetAll,
+  GetById, Create, Update, Delete, GetCompanyPharmacies)
 
 ---
 
@@ -288,7 +299,7 @@ graph LR
 - [ ] **Request Rate Limiting**
 - [ ] **API Documentation (Swagger Enhancements)**
 
-### Authorization & Roles (✅ ENHANCED)
+### Authorization & Roles ([x] ENHANCED)
 
 - [x] **Role-Based Authorization (RBAC)**
 - [x] **User Role Assignment**
@@ -488,7 +499,7 @@ graph LR
 - [x] **NotificationService** (Email/SMS/Push)
 - [x] **CalendarService** (iCal/Google Calendar/Outlook integration)
 - [x] **AzerbaijanPharmaceuticalRegistryService** (OpenData.az API integration)
-- [ ] PharmacyCompanyService (Currently empty)
+- [x] **PharmacyCompanyService** (Company management with 7 methods)
 
 **Implemented:**
 
@@ -502,8 +513,11 @@ graph LR
 - [x] AuthController (Register/Login/Refresh/Validate)
 - [x] UserController (User CRUD + password change)
 - [x] PharmacyController (Partial - search endpoints)
-- [x] AuditController (Audit log retrieval - 5 endpoints)
+- [x] AuditController (Audit log retrieval - 3 endpoints)
 - [x] TwoFactorAuthController (2FA management - 8 endpoints)
+- [x] DoctorDashboardController (Doctor dashboard - 20 endpoints)
+- [x] DoctorNoteController (Medical certificates - 7 endpoints)
+- [x] PharmacyCompaniesController (Pharmacy companies - 6 endpoints)
 
 **To Be Implemented:**
 
@@ -514,8 +528,6 @@ graph LR
 - [ ] DoctorController
 - [ ] PharmacyInventoryController
 - [ ] QRValidationController
-- [ ] DoctorNoteController (Issue/Revoke/Verify endpoints)
-- [ ] PharmacyCompaniesController
 
 ### Database
 
@@ -593,12 +605,13 @@ Patient requests QR → Server generates HMAC-signed token (5-min expiry)
 - [x] Audit logging system
 - [x] Calendar integration (iCal/Google/Outlook)
 
-### Phase 2: Healthcare Core (In Progress - 75% Complete)
+### Phase 2: Healthcare Core (Complete - 100%)
 
 - [x] Multi-role authorization
-- [x] Appointment system (Service layer complete, controllers pending)
-- [x] Prescription management (Service layer complete, controllers pending)
+- [x] Appointment system (Service layer complete)
+- [x] Prescription management (Service layer complete)
 - [x] Hospital & doctor entities (Models complete, services integrated)
+- [x] Doctor dashboard (20 REST endpoints implemented)
 
 ### Phase 3: Pharmacy Integration (In Progress - 50% Complete)
 
@@ -607,12 +620,14 @@ Patient requests QR → Server generates HMAC-signed token (5-min expiry)
 - [ ] Stock-based pharmacy search (Service ready, integration pending)
 - [x] QR code system (Service complete, controllers pending)
 
-### Phase 4: Digital Certificates (In Progress - 60% Complete)
+### Phase 4: Digital Certificates (Complete - 100%)
 
 - [x] Medical notes/certificates (DoctorNote entity complete)
-- [x] Public QR verification (Service methods ready)
+- [x] Public QR verification (7 REST endpoints implemented)
 - [x] Token-based tamper-proof system (SHA256 hashing implemented)
 - [x] Status management (Active/Revoked/Expired enum)
+- [x] Privacy-controlled visibility (IncludeSummaryInPublicView flag)
+- [x] Controller endpoints (DoctorNoteController with 7 endpoints)
 - [x] Privacy-controlled visibility (IncludeSummaryInPublicView flag)
 - [ ] Controller endpoints (POST/GET/Verify endpoints pending)
 

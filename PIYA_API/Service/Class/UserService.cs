@@ -135,4 +135,31 @@ public class UserService(PharmacyApiDbContext dbContext, IPasswordHasher passwor
         _dbContext.Users.Update(existingUser);
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _dbContext.Users.FindAsync(id);
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        var existingUser = await _dbContext.Users.FindAsync(user.Id);
+        if (existingUser == null)
+            throw new KeyNotFoundException($"User with ID {user.Id} not found");
+
+        existingUser.Role = user.Role;
+        existingUser.UpdatedAt = DateTime.UtcNow;
+
+        _dbContext.Users.Update(existingUser);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<User>> GetUsersByRoleAsync(UserRole role)
+    {
+        return await _dbContext.Users
+            .Where(u => u.Role == role)
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync();
+    }
 }
