@@ -16,7 +16,7 @@
 Built with ASP.NET Core 9.0 and PostgreSQL | Healthcare Ecosystem |
 HIPAA-Compliant Ready
 
-## Progress: ![Progress](https://geps.dev/progress/62)
+## Progress: ![Progress](https://geps.dev/progress/66)
 
 ---
 
@@ -135,15 +135,15 @@ graph LR
 - [x] **Medication Alternatives/Generics**
 - [x] **Medication Master Data Management**
 
-### Pharmacy Inventory System (NEW)
+### Pharmacy Inventory System (✅ COMPLETE)
 
-- [ ] **PharmacyInventory Model**
-- [ ] **Real-time Stock Tracking**
-- [ ] **Low Stock Alerts**
-- [ ] **Inventory Update API**
-- [ ] **Stock History**
-- [ ] **Expiration Date Tracking**
-- [ ] **Batch Number Management**
+- [x] **PharmacyInventory Model** - Enhanced with ReorderQuantity, LowStockAlertTriggered, LastLowStockAlertAt + 2 new entities (InventoryBatch, InventoryHistory)
+- [x] **Real-time Stock Tracking** - FIFO batch deduction with user attribution and prescription linking
+- [x] **Low Stock Alerts** - Automatic alert triggering with auto-reset on restock, logged to AuditService
+- [x] **Inventory Update API** - 18 REST endpoints via PharmacyInventoryController (update, restock, decrease, batch management, history, alerts)
+- [x] **Stock History** - Complete audit trail with 7 transaction types (Restock, Sale, Adjustment, Return, Expired, Damaged, Transfer)
+- [x] **Expiration Date Tracking** - Per-batch expiration dates with automatic cleanup and expiring items alerts
+- [x] **Batch Number Management** - Full lot/batch tracking with supplier info, cost per unit, manufacturing/expiration dates, storage location
 
 ### Smart Pharmacy Search (Service Implemented ✅)
 

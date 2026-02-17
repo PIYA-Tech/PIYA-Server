@@ -3,10 +3,12 @@ using PIYA_API.Model;
 namespace PIYA_API.Service.Interface;
 
 /// <summary>
-/// Service for managing pharmacy inventory
+/// Enhanced service for managing pharmacy inventory with batch tracking, stock history, and alerts
 /// </summary>
 public interface IInventoryService
 {
+    #region Core Inventory Management
+    
     /// <summary>
     /// Add or update inventory for a pharmacy
     /// </summary>
@@ -33,37 +35,113 @@ public interface IInventoryService
     Task<bool> IsInStockAsync(Guid pharmacyId, Guid medicationId, int requiredQuantity = 1);
     
     /// <summary>
-    /// Update stock quantity
+    /// Delete inventory item
     /// </summary>
-    Task<PharmacyInventory> UpdateStockAsync(Guid inventoryId, int newQuantity);
+    Task<bool> DeleteAsync(Guid id);
+    
+    #endregion
+    
+    #region Real-time Stock Tracking
     
     /// <summary>
-    /// Decrease stock (after sale/fulfillment)
+    /// Update stock quantity with optional user tracking and notes
     /// </summary>
-    Task<PharmacyInventory> DecreaseStockAsync(Guid pharmacyId, Guid medicationId, int quantity);
+    Task<PharmacyInventory> UpdateStockAsync(Guid inventoryId, int newQuantity, Guid? userId = null, string? notes = null);
     
     /// <summary>
-    /// Increase stock (restock)
+    /// Decrease stock (after sale/fulfillment) with FIFO batch management
     /// </summary>
-    Task<PharmacyInventory> IncreaseStockAsync(Guid pharmacyId, Guid medicationId, int quantity);
+    Task<PharmacyInventory> DecreaseStockAsync(Guid pharmacyId, Guid medicationId, int quantity, Guid? userId = null, Guid? prescriptionId = null, string? referenceNumber = null);
     
     /// <summary>
-    /// Get low stock items for a pharmacy
+    /// Increase stock (restock) with tracking
+    /// </summary>
+    Task<PharmacyInventory> IncreaseStockAsync(Guid pharmacyId, Guid medicationId, int quantity, Guid? userId = null, string? referenceNumber = null);
+    
+    #endregion
+    
+    #region Batch Management
+    
+    /// <summary>
+    /// Add a new inventory batch with batch number and expiration tracking
+    /// </summary>
+    Task<InventoryBatch> AddBatchAsync(InventoryBatch batch);
+    
+    /// <summary>
+    /// Get all batches for an inventory item
+    /// </summary>
+    Task<List<InventoryBatch>> GetBatchesAsync(Guid inventoryId, bool activeOnly = true);
+    
+    /// <summary>
+    /// Get batch by batch number
+    /// </summary>
+    Task<InventoryBatch?> GetBatchByNumberAsync(Guid inventoryId, string batchNumber);
+    
+    /// <summary>
+    /// Get all batches expiring within specified days
+    /// </summary>
+    Task<List<InventoryBatch>> GetExpiringBatchesAsync(int daysThreshold = 30);
+    
+    /// <summary>
+    /// Remove expired batches from inventory
+    /// </summary>
+    Task<bool> RemoveExpiredBatchesAsync(Guid? userId = null);
+    
+    #endregion
+    
+    #region Stock History
+    
+    /// <summary>
+    /// Get stock movement history for an inventory item
+    /// </summary>
+    Task<List<InventoryHistory>> GetStockHistoryAsync(
+        Guid inventoryId, 
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        InventoryTransactionType? transactionType = null);
+    
+    /// <summary>
+    /// Get all stock history for a pharmacy
+    /// </summary>
+    Task<List<InventoryHistory>> GetPharmacyStockHistoryAsync(
+        Guid pharmacyId,
+        DateTime? startDate = null,
+        DateTime? endDate = null);
+    
+    #endregion
+    
+    #region Low Stock Alerts
+    
+    /// <summary>
+    /// Get inventory items below minimum stock level
     /// </summary>
     Task<List<PharmacyInventory>> GetLowStockItemsAsync(Guid pharmacyId);
     
     /// <summary>
-    /// Get items expiring soon
+    /// Get inventory items with batches expiring soon
     /// </summary>
     Task<List<PharmacyInventory>> GetExpiringItemsAsync(Guid pharmacyId, int daysThreshold = 30);
     
     /// <summary>
-    /// Check if pharmacy can fulfill prescription
+    /// Check and trigger low stock alert if needed
     /// </summary>
-    Task<(bool CanFulfill, List<Guid> MissingMedicationIds)> CanFulfillPrescriptionAsync(Guid pharmacyId, List<Guid> medicationIds);
+    Task<bool> CheckAndTriggerLowStockAlertAsync(PharmacyInventory inventory);
     
     /// <summary>
-    /// Delete inventory item
+    /// Get reorder suggestions based on low stock items
     /// </summary>
-    Task<bool> DeleteAsync(Guid id);
+    Task<Dictionary<Guid, int>> GetReorderSuggestionsAsync(Guid pharmacyId);
+    
+    #endregion
+    
+    #region Prescription Fulfillment
+    
+    /// <summary>
+    /// Check if pharmacy can fulfill prescription (has all medications)
+    /// </summary>
+    Task<(bool CanFulfill, List<Guid> MissingMedicationIds)> CanFulfillPrescriptionAsync(
+        Guid pharmacyId, 
+        List<Guid> medicationIds);
+    
+    #endregion
 }

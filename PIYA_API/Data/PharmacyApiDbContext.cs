@@ -20,6 +20,8 @@ namespace PIYA_API.Data
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
         public DbSet<Medication> Medications { get; set; }
         public DbSet<PharmacyInventory> PharmacyInventories { get; set; }
+        public DbSet<InventoryBatch> InventoryBatches { get; set; }
+        public DbSet<InventoryHistory> InventoryHistories { get; set; }
         public DbSet<DoctorNote> DoctorNotes { get; set; }
         public DbSet<QRToken> QRTokens { get; set; }
 
