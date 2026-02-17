@@ -161,21 +161,26 @@ graph LR
 
 ### QR Code System (✅ COMPLETE - HIGH SECURITY)
 
-- [x] **Generate Time-Limited QR Tokens (5-min validity)** (GeneratePrescriptionQrTokenAsync + API endpoint)
+- [x] **Generate Time-Limited QR Tokens (5-min validity)**
+  (GeneratePrescriptionQrTokenAsync + API endpoint)
 - [x] **HMAC-Signed QR Payload** (HMAC-SHA256 signature with secret key)
 - [x] **QR Validation Endpoint** (ValidateQrTokenAsync + 6 REST endpoints in QRValidationController)
-- [x] **Prescription Retrieval via QR** (ValidateAndUsePrescriptionQrTokenAsync + /scan endpoint)
+- [x] **Prescription Retrieval via QR** (ValidateAndUsePrescriptionQrTokenAsync+
+  /scan endpoint)
 - [x] **QR Expiration & Revocation** (Database-backed revocation + /revoke endpoint)
-- [x] **Pharmacist Scan Interface** (6 controller endpoints: generate, scan, validate, revoke, status, history)
-- [x] **Anti-Replay Attack Prevention** (One-time use enforcement via IsUsed flag + token hash storage)
-- [x] **QR Audit Trail** (Complete audit logging with QRToken entity + /history endpoint)
+- [x] **Pharmacist Scan Interface** (6 controller endpoints: generate, scan,
+  validate, revoke, status, history)
+- [x] **Anti-Replay Attack Prevention** (One-time use enforcement via IsUsed
+  flag + token hash storage)
+- [x] **QR Audit Trail** (Complete audit logging with QRToken entity +
+  /history endpoint)
 
 **Implementation Details:**
+
 - QRToken entity with 20+ security fields (SHA-256 hashing, HMAC signing)
 - QRService with 11 methods (generate, validate, revoke, audit trail)
 - QRValidationController with 6 RESTful endpoints
 - Security features: Time-limited tokens (5 min), one-time use, IP/device tracking
-- Complete documentation: See `QR_SECURITY_SYSTEM_GUIDE.md`
 
 ### Digital Medical Certificates (NEW)
 
