@@ -1,47 +1,65 @@
+using PIYA_API.Model;
+
 namespace PIYA_API.Service.Interface;
 
 /// <summary>
-/// Service for generating and validating time-limited QR codes
+/// Service for generating and validating time-limited QR codes with anti-replay protection
 /// </summary>
 public interface IQRService
 {
     /// <summary>
-    /// Generate a time-limited QR token (5-minute validity)
+    /// Generate a time-limited QR token for prescription (5-minute validity)
+    /// Returns the token string to be embedded in QR code
     /// </summary>
-    string GenerateQrToken(Guid entityId, string entityType, int validityMinutes = 5);
+    Task<(string Token, Guid TokenId)> GeneratePrescriptionQrTokenAsync(Guid prescriptionId, Guid userId, string? ipAddress = null, string? userAgent = null);
     
     /// <summary>
-    /// Validate QR token and return entity ID
+    /// Validate prescription QR token and mark as used (one-time use)
     /// </summary>
-    (bool IsValid, Guid EntityId, string EntityType) ValidateQrToken(string token);
+    Task<(bool IsValid, Guid PrescriptionId, string ErrorMessage)> ValidateAndUsePrescriptionQrTokenAsync(string token, Guid pharmacistUserId, string? ipAddress = null, string? userAgent = null);
     
     /// <summary>
-    /// Generate HMAC-signed QR token
+    /// Generate time-limited QR token for any entity type
     /// </summary>
-    string GenerateSignedQrToken(Guid entityId, string entityType, int validityMinutes = 5);
+    Task<(string Token, Guid TokenId)> GenerateQrTokenAsync(Guid entityId, string entityType, Guid userId, int validityMinutes = 5, string? ipAddress = null, string? userAgent = null);
     
     /// <summary>
-    /// Validate HMAC signature of QR token
+    /// Validate QR token and return entity information (does not mark as used)
     /// </summary>
-    (bool IsValid, Guid EntityId, string EntityType, DateTime ExpiresAt) ValidateSignedQrToken(string signedToken);
+    Task<(bool IsValid, Guid EntityId, string EntityType, DateTime ExpiresAt, string ErrorMessage)> ValidateQrTokenAsync(string token);
     
     /// <summary>
-    /// Generate QR code image as base64 string
+    /// Mark a QR token as used (for one-time use enforcement)
+    /// </summary>
+    Task<bool> MarkTokenAsUsedAsync(string token, Guid usedByUserId, string? ipAddress = null, string? userAgent = null);
+    
+    /// <summary>
+    /// Revoke/blacklist a token (for security or cancellation)
+    /// </summary>
+    Task<bool> RevokeTokenAsync(string token, Guid revokedByUserId, string reason);
+    
+    /// <summary>
+    /// Check token status (Active/Used/Expired/Revoked)
+    /// </summary>
+    Task<(QRTokenStatus Status, DateTime? ExpiresAt)> GetTokenStatusAsync(string token);
+    
+    /// <summary>
+    /// Get all QR tokens for an entity (audit trail)
+    /// </summary>
+    Task<List<QRToken>> GetTokenHistoryAsync(Guid entityId, string entityType);
+    
+    /// <summary>
+    /// Get active QR token for an entity (if exists and not expired)
+    /// </summary>
+    Task<QRToken?> GetActiveTokenAsync(Guid entityId, string entityType);
+    
+    /// <summary>
+    /// Clean up expired tokens (background task)
+    /// </summary>
+    Task<int> CleanupExpiredTokensAsync(int daysOld = 7);
+    
+    /// <summary>
+    /// Generate QR code image as base64 string (requires QRCoder package)
     /// </summary>
     Task<string> GenerateQrCodeImageAsync(string data);
-    
-    /// <summary>
-    /// Check if token is expired
-    /// </summary>
-    bool IsTokenExpired(DateTime expiresAt);
-    
-    /// <summary>
-    /// Revoke/blacklist a token (for one-time use enforcement)
-    /// </summary>
-    Task RevokeTokenAsync(string token);
-    
-    /// <summary>
-    /// Check if token has been revoked
-    /// </summary>
-    Task<bool> IsTokenRevokedAsync(string token);
 }

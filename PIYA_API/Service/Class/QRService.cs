@@ -1,131 +1,460 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using PIYA_API.Data;
+using PIYA_API.Model;
 using PIYA_API.Service.Interface;
 
 namespace PIYA_API.Service.Class;
 
 public class QRService : IQRService
 {
+    private readonly PharmacyApiDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<QRService> _logger;
-    private readonly HashSet<string> _revokedTokens = new(); // In-memory revocation list
+    private readonly IAuditService _auditService;
     private readonly string _secretKey;
 
-    public QRService(IConfiguration configuration, ILogger<QRService> logger)
+    public QRService(
+        PharmacyApiDbContext context,
+        IConfiguration configuration,
+        ILogger<QRService> logger,
+        IAuditService auditService)
     {
+        _context = context;
         _configuration = configuration;
         _logger = logger;
-        _secretKey = _configuration["Security:QrSigningKey"] ?? "DEFAULT_QR_SECRET_KEY_CHANGE_IN_PRODUCTION";
+        _auditService = auditService;
+        _secretKey = _configuration["Security:QrSigningKey"] ?? "DEFAULT_QR_SECRET_KEY_CHANGE_IN_PRODUCTION_MINIMUM_32_CHARACTERS";
     }
 
-    public string GenerateQrToken(Guid entityId, string entityType, int expiryMinutes = 5)
-    {
-        var payload = new
-        {
-            EntityId = entityId,
-            EntityType = entityType,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
-            GeneratedAt = DateTime.UtcNow
-        };
-
-        var jsonPayload = JsonSerializer.Serialize(payload);
-        var bytes = Encoding.UTF8.GetBytes(jsonPayload);
-        return Convert.ToBase64String(bytes);
-    }
-
-    public string GenerateSignedQrToken(Guid entityId, string entityType, int expiryMinutes = 5)
-    {
-        var payload = new
-        {
-            EntityId = entityId,
-            EntityType = entityType,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
-            GeneratedAt = DateTime.UtcNow,
-            Nonce = Guid.NewGuid().ToString() // Prevent duplicate tokens
-        };
-
-        var jsonPayload = JsonSerializer.Serialize(payload);
-        var signature = GenerateHmacSignature(jsonPayload);
-
-        var signedPayload = new
-        {
-            Payload = jsonPayload,
-            Signature = signature
-        };
-
-        var signedJson = JsonSerializer.Serialize(signedPayload);
-        var bytes = Encoding.UTF8.GetBytes(signedJson);
-        return Convert.ToBase64String(bytes);
-    }
-
-    public (bool IsValid, Guid EntityId, string EntityType) ValidateQrToken(string token)
+    public async Task<(string Token, Guid TokenId)> GeneratePrescriptionQrTokenAsync(
+        Guid prescriptionId, 
+        Guid userId, 
+        string? ipAddress = null, 
+        string? userAgent = null)
     {
         try
         {
-            var bytes = Convert.FromBase64String(token);
-            var json = Encoding.UTF8.GetString(bytes);
-            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+            _logger.LogInformation("Generating QR token for prescription {PrescriptionId} by user {UserId}", prescriptionId, userId);
 
-            if (payload == null)
+            // Verify prescription exists and belongs to user
+            var prescription = await _context.Prescriptions
+                .FirstOrDefaultAsync(p => p.Id == prescriptionId && p.PatientId == userId);
+
+            if (prescription == null)
             {
-                return (false, Guid.Empty, string.Empty);
+                throw new InvalidOperationException($"Prescription {prescriptionId} not found or access denied");
             }
 
-            var entityId = Guid.Parse(payload["EntityId"].GetString()!);
-            var entityType = payload["EntityType"].GetString()!;
+            // Check if prescription is already used or expired
+            if (prescription.Status == PrescriptionStatus.Fulfilled)
+            {
+                throw new InvalidOperationException("Prescription has already been fulfilled");
+            }
 
-            return (true, entityId, entityType);
+            if (prescription.Status == PrescriptionStatus.Expired || prescription.ExpiresAt < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Prescription has expired");
+            }
+
+            return await GenerateQrTokenAsync(prescriptionId, "Prescription", userId, validityMinutes: 5, ipAddress, userAgent);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to validate QR token");
-            return (false, Guid.Empty, string.Empty);
+            _logger.LogError(ex, "Error generating prescription QR token");
+            throw;
         }
     }
 
-    public (bool IsValid, Guid EntityId, string EntityType, DateTime ExpiresAt) ValidateSignedQrToken(string token)
+    public async Task<(string Token, Guid TokenId)> GenerateQrTokenAsync(
+        Guid entityId, 
+        string entityType, 
+        Guid userId, 
+        int validityMinutes = 5, 
+        string? ipAddress = null, 
+        string? userAgent = null)
     {
         try
         {
+            var tokenId = Guid.NewGuid();
+            var expiresAt = DateTime.UtcNow.AddMinutes(validityMinutes);
+            var nonce = Guid.NewGuid().ToString(); // Prevent duplicate tokens
+
+            // Create signed payload
+            var payload = new
+            {
+                TokenId = tokenId,
+                EntityId = entityId,
+                EntityType = entityType,
+                ExpiresAt = expiresAt,
+                GeneratedAt = DateTime.UtcNow,
+                Nonce = nonce
+            };
+
+            var jsonPayload = JsonSerializer.Serialize(payload);
+            var signature = GenerateHmacSignature(jsonPayload);
+
+            var signedPayload = new
+            {
+                Payload = jsonPayload,
+                Signature = signature
+            };
+
+            var signedJson = JsonSerializer.Serialize(signedPayload);
+            var tokenString = Convert.ToBase64String(Encoding.UTF8.GetBytes(signedJson));
+
+            // Store token in database with hash
+            var tokenHash = ComputeSha256Hash(tokenString);
+            var qrToken = new QRToken
+            {
+                Id = tokenId,
+                TokenHash = tokenHash,
+                EntityType = entityType,
+                EntityId = entityId,
+                GeneratedByUserId = userId,
+                GeneratedAt = DateTime.UtcNow,
+                ExpiresAt = expiresAt,
+                GeneratedFromIp = ipAddress,
+                GeneratedFromDevice = userAgent
+            };
+
+            _context.QRTokens.Add(qrToken);
+            await _context.SaveChangesAsync();
+
+            // Audit log
+            await _auditService.LogEntityActionAsync("QR_TOKEN_GENERATED", entityType, entityId.ToString(), userId,
+                $"Generated QR token for {entityType} {entityId}");
+
+            _logger.LogInformation("Generated QR token {TokenId} for {EntityType} {EntityId}, expires at {ExpiresAt}", 
+                tokenId, entityType, entityId, expiresAt);
+
+            return (tokenString, tokenId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating QR token");
+            throw;
+        }
+    }
+
+    public async Task<(bool IsValid, Guid PrescriptionId, string ErrorMessage)> ValidateAndUsePrescriptionQrTokenAsync(
+        string token, 
+        Guid pharmacistUserId, 
+        string? ipAddress = null, 
+        string? userAgent = null)
+    {
+        try
+        {
+            _logger.LogInformation("Validating prescription QR token by pharmacist {PharmacistId}", pharmacistUserId);
+
+            // Validate token structure and signature
+            var (isValid, entityId, entityType, expiresAt, errorMessage) = await ValidateQrTokenAsync(token);
+
+            if (!isValid)
+            {
+                return (false, Guid.Empty, errorMessage);
+            }
+
+            if (entityType != "Prescription")
+            {
+                return (false, Guid.Empty, "Invalid token type - expected Prescription QR token");
+            }
+
+            // Mark token as used
+            var marked = await MarkTokenAsUsedAsync(token, pharmacistUserId, ipAddress, userAgent);
+            if (!marked)
+            {
+                return (false, Guid.Empty, "Failed to mark token as used");
+            }
+
+            // Update prescription status to Fulfilled
+            var prescription = await _context.Prescriptions.FindAsync(entityId);
+            if (prescription != null)
+            {
+                prescription.Status = PrescriptionStatus.Fulfilled;
+                prescription.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            // Audit log
+            await _auditService.LogEntityActionAsync("PRESCRIPTION_QR_SCANNED", "Prescription", entityId.ToString(), pharmacistUserId, 
+                $"Scanned and validated prescription {entityId}");
+
+            _logger.LogInformation("Successfully validated and used prescription QR token for prescription {PrescriptionId}", entityId);
+
+            return (true, entityId, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating prescription QR token");
+            return (false, Guid.Empty, $"Validation error: {ex.Message}");
+        }
+    }
+
+    public async Task<(bool IsValid, Guid EntityId, string EntityType, DateTime ExpiresAt, string ErrorMessage)> ValidateQrTokenAsync(string token)
+    {
+        try
+        {
+            // Parse and verify signature
             var bytes = Convert.FromBase64String(token);
             var json = Encoding.UTF8.GetString(bytes);
             var signedPayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
-            if (signedPayload == null)
+            if (signedPayload == null || !signedPayload.ContainsKey("Payload") || !signedPayload.ContainsKey("Signature"))
             {
-                return (false, Guid.Empty, string.Empty, DateTime.MinValue);
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, "Invalid token format");
             }
 
             var payloadJson = signedPayload["Payload"].GetString()!;
             var signature = signedPayload["Signature"].GetString()!;
 
-            // Verify signature
+            // Verify HMAC signature
             var expectedSignature = GenerateHmacSignature(payloadJson);
             if (signature != expectedSignature)
             {
                 _logger.LogWarning("QR token signature verification failed");
-                return (false, Guid.Empty, string.Empty, DateTime.MinValue);
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, "Invalid signature - token may be tampered");
             }
 
             // Parse payload
             var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson);
             if (payload == null)
             {
-                return (false, Guid.Empty, string.Empty, DateTime.MinValue);
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, "Invalid payload");
             }
 
+            var tokenId = Guid.Parse(payload["TokenId"].GetString()!);
             var entityId = Guid.Parse(payload["EntityId"].GetString()!);
             var entityType = payload["EntityType"].GetString()!;
             var expiresAt = payload["ExpiresAt"].GetDateTime();
 
-            return (true, entityId, entityType, expiresAt);
+            // Check database for token status
+            var tokenHash = ComputeSha256Hash(token);
+            var dbToken = await _context.QRTokens
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+
+            if (dbToken == null)
+            {
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, "Token not found in database");
+            }
+
+            // Increment validation attempts
+            dbToken.ValidationAttempts++;
+            dbToken.LastValidationAttempt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Check if revoked
+            if (dbToken.IsRevoked)
+            {
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, $"Token has been revoked: {dbToken.RevocationReason}");
+            }
+
+            // Check if already used (anti-replay)
+            if (dbToken.IsUsed)
+            {
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, $"Token has already been used at {dbToken.UsedAt:yyyy-MM-dd HH:mm:ss} UTC");
+            }
+
+            // Check expiration
+            if (DateTime.UtcNow > expiresAt)
+            {
+                return (false, Guid.Empty, string.Empty, DateTime.MinValue, $"Token expired at {expiresAt:yyyy-MM-dd HH:mm:ss} UTC");
+            }
+
+            return (true, entityId, entityType, expiresAt, string.Empty);
+        }
+        catch (FormatException)
+        {
+            return (false, Guid.Empty, string.Empty, DateTime.MinValue, "Invalid token format");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to validate signed QR token");
-            return (false, Guid.Empty, string.Empty, DateTime.MinValue);
+            _logger.LogError(ex, "Error validating QR token");
+            return (false, Guid.Empty, string.Empty, DateTime.MinValue, $"Validation error: {ex.Message}");
+        }
+    }
+
+    public async Task<bool> MarkTokenAsUsedAsync(string token, Guid usedByUserId, string? ipAddress = null, string? userAgent = null)
+    {
+        try
+        {
+            var tokenHash = ComputeSha256Hash(token);
+            var dbToken = await _context.QRTokens
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+
+            if (dbToken == null)
+            {
+                _logger.LogWarning("Attempted to mark non-existent token as used");
+                return false;
+            }
+
+            if (dbToken.IsUsed)
+            {
+                _logger.LogWarning("Token {TokenId} already marked as used", dbToken.Id);
+                return false;
+            }
+
+            dbToken.IsUsed = true;
+            dbToken.UsedAt = DateTime.UtcNow;
+            dbToken.UsedByUserId = usedByUserId;
+            dbToken.UsedFromIp = ipAddress;
+            dbToken.UsedFromDevice = userAgent;
+
+            await _context.SaveChangesAsync();
+
+            await _auditService.LogEntityActionAsync("QR_TOKEN_USED", dbToken.EntityType, dbToken.EntityId.ToString(), usedByUserId,
+                $"Used QR token for {dbToken.EntityType} {dbToken.EntityId}");
+
+            _logger.LogInformation("Marked token {TokenId} as used by user {UserId}", dbToken.Id, usedByUserId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking token as used");
+            return false;
+        }
+    }
+
+    public async Task<bool> RevokeTokenAsync(string token, Guid revokedByUserId, string reason)
+    {
+        try
+        {
+            var tokenHash = ComputeSha256Hash(token);
+            var dbToken = await _context.QRTokens
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+
+            if (dbToken == null)
+            {
+                _logger.LogWarning("Attempted to revoke non-existent token");
+                return false;
+            }
+
+            if (dbToken.IsRevoked)
+            {
+                _logger.LogWarning("Token {TokenId} already revoked", dbToken.Id);
+                return false;
+            }
+
+            dbToken.IsRevoked = true;
+            dbToken.RevokedAt = DateTime.UtcNow;
+            dbToken.RevokedByUserId = revokedByUserId;
+            dbToken.RevocationReason = reason;
+
+            await _context.SaveChangesAsync();
+
+            await _auditService.LogEntityActionAsync("QR_TOKEN_REVOKED", dbToken.EntityType, dbToken.EntityId.ToString(), revokedByUserId,
+                $"Revoked QR token for {dbToken.EntityType} {dbToken.EntityId}: {reason}");
+
+            _logger.LogInformation("Revoked token {TokenId} by user {UserId}: {Reason}", dbToken.Id, revokedByUserId, reason);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error revoking token");
+            return false;
+        }
+    }
+
+    public async Task<(QRTokenStatus Status, DateTime? ExpiresAt)> GetTokenStatusAsync(string token)
+    {
+        try
+        {
+            var tokenHash = ComputeSha256Hash(token);
+            var dbToken = await _context.QRTokens
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+
+            if (dbToken == null)
+            {
+                return (QRTokenStatus.Expired, null); // Treat non-existent as expired
+            }
+
+            if (dbToken.IsRevoked)
+            {
+                return (QRTokenStatus.Revoked, dbToken.ExpiresAt);
+            }
+
+            if (dbToken.IsUsed)
+            {
+                return (QRTokenStatus.Used, dbToken.ExpiresAt);
+            }
+
+            if (DateTime.UtcNow > dbToken.ExpiresAt)
+            {
+                return (QRTokenStatus.Expired, dbToken.ExpiresAt);
+            }
+
+            return (QRTokenStatus.Active, dbToken.ExpiresAt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting token status");
+            return (QRTokenStatus.Expired, null);
+        }
+    }
+
+    public async Task<List<QRToken>> GetTokenHistoryAsync(Guid entityId, string entityType)
+    {
+        try
+        {
+            return await _context.QRTokens
+                .Where(t => t.EntityId == entityId && t.EntityType == entityType)
+                .OrderByDescending(t => t.GeneratedAt)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting token history");
+            return new List<QRToken>();
+        }
+    }
+
+    public async Task<QRToken?> GetActiveTokenAsync(Guid entityId, string entityType)
+    {
+        try
+        {
+            return await _context.QRTokens
+                .Where(t => t.EntityId == entityId && 
+                           t.EntityType == entityType &&
+                           !t.IsUsed && 
+                           !t.IsRevoked && 
+                           t.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(t => t.GeneratedAt)
+                .FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting active token");
+            return null;
+        }
+    }
+
+    public async Task<int> CleanupExpiredTokensAsync(int daysOld = 7)
+    {
+        try
+        {
+            var cutoffDate = DateTime.UtcNow.AddDays(-daysOld);
+            var expiredTokens = await _context.QRTokens
+                .Where(t => t.ExpiresAt < cutoffDate)
+                .ToListAsync();
+
+            if (expiredTokens.Count > 0)
+            {
+                _context.QRTokens.RemoveRange(expiredTokens);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cleaned up {Count} expired QR tokens older than {Days} days", 
+                    expiredTokens.Count, daysOld);
+            }
+
+            return expiredTokens.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cleaning up expired tokens");
+            return 0;
         }
     }
 
@@ -146,27 +475,18 @@ public class QRService : IQRService
         return string.Empty;
     }
 
-    public bool IsTokenExpired(DateTime expiresAt)
-    {
-        return DateTime.UtcNow > expiresAt;
-    }
-
-    public Task RevokeTokenAsync(string token)
-    {
-        _revokedTokens.Add(token);
-        _logger.LogInformation("QR token revoked");
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> IsTokenRevokedAsync(string token)
-    {
-        return Task.FromResult(_revokedTokens.Contains(token));
-    }
-
+    // Private helper methods
     private string GenerateHmacSignature(string data)
     {
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_secretKey));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         return Convert.ToBase64String(hash);
+    }
+
+    private string ComputeSha256Hash(string rawData)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+        return Convert.ToBase64String(bytes);
     }
 }

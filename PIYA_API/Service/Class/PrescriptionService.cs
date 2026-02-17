@@ -97,7 +97,7 @@ public class PrescriptionService(
         }
 
         // Generate QR token with 5-minute validity
-        var qrToken = _qrService.GenerateSignedQrToken(prescriptionId, "Prescription", 5);
+        var (qrToken, tokenId) = await _qrService.GeneratePrescriptionQrTokenAsync(prescriptionId, prescription.PatientId);
 
         prescription.QrToken = qrToken;
         prescription.QrTokenExpiresAt = DateTime.UtcNow.AddMinutes(5);
@@ -118,21 +118,11 @@ public class PrescriptionService(
 
     public async Task<Prescription?> ValidateQrCodeAsync(string qrToken)
     {
-        var (isValid, entityId, entityType, expiresAt) = _qrService.ValidateSignedQrToken(qrToken);
+        var (isValid, entityId, entityType, expiresAt, errorMessage) = await _qrService.ValidateQrTokenAsync(qrToken);
 
         if (!isValid || entityType != "Prescription")
         {
-            return null;
-        }
-
-        if (_qrService.IsTokenExpired(expiresAt))
-        {
-            return null;
-        }
-
-        // Check if token has been used (one-time use)
-        if (await _qrService.IsTokenRevokedAsync(qrToken))
-        {
+            _logger.LogWarning("Invalid QR token: {ErrorMessage}", errorMessage);
             return null;
         }
 
@@ -165,10 +155,10 @@ public class PrescriptionService(
             item.FulfilledAt = DateTime.UtcNow;
         }
 
-        // Revoke QR token (one-time use)
+        // Revoke QR token (one-time use) - use system user ID for automatic fulfillment
         if (!string.IsNullOrEmpty(prescription.QrToken))
         {
-            await _qrService.RevokeTokenAsync(prescription.QrToken);
+            await _qrService.RevokeTokenAsync(prescription.QrToken, prescription.PatientId, "Prescription fulfilled");
         }
 
         await _context.SaveChangesAsync();

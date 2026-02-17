@@ -93,6 +93,6 @@ public class Appointment
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties
-    public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
-    public ICollection<DoctorNote> DoctorNotes { get; set; } = new List<DoctorNote>();
+    public ICollection<Prescription> Prescriptions { get; set; } = [];
+    public ICollection<DoctorNote> DoctorNotes { get; set; } = [];
 }

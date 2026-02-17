@@ -14,12 +14,14 @@ namespace PIYA_API.Data
         
         // Healthcare entities
         public DbSet<Hospital> Hospitals { get; set; }
+        public DbSet<DoctorProfile> DoctorProfiles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
         public DbSet<Medication> Medications { get; set; }
         public DbSet<PharmacyInventory> PharmacyInventories { get; set; }
         public DbSet<DoctorNote> DoctorNotes { get; set; }
+        public DbSet<QRToken> QRTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +32,13 @@ namespace PIYA_API.Data
                 .HasOne(u => u.TwoFactorAuth)
                 .WithOne(t => t.User)
                 .HasForeignKey<TwoFactorAuth>(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // User - DoctorProfile (One-to-One)
+            modelBuilder.Entity<DoctorProfile>()
+                .HasOne<User>()
+                .WithOne()
+                .HasForeignKey<DoctorProfile>(dp => dp.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // AuditLog - User (Many-to-One, nullable)
