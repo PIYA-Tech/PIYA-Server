@@ -506,28 +506,33 @@ graph LR
 - [x] AuditService (Healthcare transaction logging)
 - [x] TwoFactorAuthService (2FA management with TOTP/SMS/Email)
 
-### Controllers
+### Controllers (17 Total - All Implemented ✅)
 
-**Current:**
+**Authentication & User Management:**
 
-- [x] AuthController (Register/Login/Refresh/Validate)
-- [x] UserController (User CRUD + password change)
-- [x] PharmacyController (Partial - search endpoints)
-- [x] AuditController (Audit log retrieval - 3 endpoints)
+- [x] AuthController (Register/Login/Refresh/Validate - 4 endpoints)
+- [x] UserController (User CRUD + password change + role assignment - 8 endpoints)
 - [x] TwoFactorAuthController (2FA management - 8 endpoints)
-- [x] DoctorDashboardController (Doctor dashboard - 20 endpoints)
-- [x] DoctorNoteController (Medical certificates - 7 endpoints)
-- [x] PharmacyCompaniesController (Pharmacy companies - 6 endpoints)
+- [x] PermissionsController (Permission management - 5 endpoints)
+- [x] AuditController (Audit log retrieval - 3 endpoints)
 
-**To Be Implemented:**
+**Healthcare Operations:**
 
-- [ ] AppointmentController
-- [ ] PrescriptionController
-- [ ] MedicationController
-- [ ] HospitalController
-- [ ] DoctorController
-- [ ] PharmacyInventoryController
-- [ ] QRValidationController
+- [x] AppointmentController (9 endpoints - booking, scheduling, cancellation, availability)
+- [x] PrescriptionController (11 endpoints - digital prescriptions with QR validation)
+- [x] DoctorDashboardController (20 endpoints - doctor-only operations)
+- [x] DoctorController (6 endpoints - public doctor discovery & search)
+- [x] DoctorNoteController (7 endpoints - medical certificates with QR verification)
+- [x] HospitalController (10 endpoints - CRUD with public search)
+- [x] MedicationController (5 endpoints - public search & admin management)
+
+**Pharmacy Operations:**
+
+- [x] PharmacyController (Search endpoints)
+- [x] PharmacyCompaniesController (6 endpoints - company management)
+- [x] PharmacyInventoryController (18 endpoints - inventory management)
+- [x] PharmacyStaffController (Staff management)
+- [x] QRValidationController (6 endpoints - QR code validation)
 
 ### Database
 

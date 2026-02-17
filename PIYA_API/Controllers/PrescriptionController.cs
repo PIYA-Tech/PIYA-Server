@@ -1,0 +1,341 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PIYA_API.Model;
+using PIYA_API.Service.Interface;
+using System.Security.Claims;
+
+namespace PIYA_API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class PrescriptionController(IPrescriptionService prescriptionService, ILogger<PrescriptionController> logger) : ControllerBase
+{
+    private readonly IPrescriptionService _prescriptionService = prescriptionService;
+    private readonly ILogger<PrescriptionController> _logger = logger;
+
+    /// <summary>
+    /// Create a new prescription (Doctor only)
+    /// </summary>
+    [HttpPost]
+    [Authorize(Roles = "Doctor,Admin")]
+    public async Task<ActionResult<Prescription>> Create([FromBody] Prescription prescription)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            // If doctor, set their ID as prescriber
+            if (userRole == "Doctor")
+            {
+                prescription.DoctorId = userId;
+            }
+
+            var created = await _prescriptionService.CreatePrescriptionAsync(prescription);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating prescription");
+            return StatusCode(500, new { error = "Failed to create prescription" });
+        }
+    }
+
+    /// <summary>
+    /// Get prescription by ID
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Prescription>> GetById(Guid id)
+    {
+        try
+        {
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+            if (prescription == null)
+            {
+                return NotFound(new { error = "Prescription not found" });
+            }
+
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            // Verify user has access
+            if (userRole != "Admin" && userRole != "Pharmacist" && 
+                prescription.PatientId != userId && prescription.DoctorId != userId)
+            {
+                return Forbid();
+            }
+
+            return Ok(prescription);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving prescription {PrescriptionId}", id);
+            return StatusCode(500, new { error = "Failed to retrieve prescription" });
+        }
+    }
+
+    /// <summary>
+    /// Get my prescriptions (Patient view)
+    /// </summary>
+    [HttpGet("my-prescriptions")]
+    [Authorize(Roles = "Patient")]
+    public async Task<ActionResult<List<Prescription>>> GetMyPrescriptions([FromQuery] string? status = null)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+
+            PrescriptionStatus? prescriptionStatus = null;
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<PrescriptionStatus>(status, true, out var parsedStatus))
+            {
+                prescriptionStatus = parsedStatus;
+            }
+
+            var prescriptions = await _prescriptionService.GetPatientPrescriptionsAsync(userId, prescriptionStatus);
+            return Ok(prescriptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving patient prescriptions");
+            return StatusCode(500, new { error = "Failed to retrieve prescriptions" });
+        }
+    }
+
+    /// <summary>
+    /// Get prescriptions created by doctor
+    /// </summary>
+    [HttpGet("doctor/{doctorId}")]
+    [Authorize(Roles = "Doctor,Admin")]
+    public async Task<ActionResult<List<Prescription>>> GetDoctorPrescriptions(Guid doctorId)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            // Doctor can only view their own prescriptions
+            if (userRole == "Doctor" && doctorId != userId)
+            {
+                return Forbid();
+            }
+
+            var prescriptions = await _prescriptionService.GetDoctorPrescriptionsAsync(doctorId);
+            return Ok(prescriptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving doctor prescriptions for {DoctorId}", doctorId);
+            return StatusCode(500, new { error = "Failed to retrieve prescriptions" });
+        }
+    }
+
+    /// <summary>
+    /// Generate QR code for prescription (5-minute validity)
+    /// </summary>
+    [HttpPost("{id}/generate-qr")]
+    [Authorize(Roles = "Patient")]
+    public async Task<ActionResult<object>> GenerateQrCode(Guid id)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+
+            if (prescription == null)
+            {
+                return NotFound(new { error = "Prescription not found" });
+            }
+
+            // Verify patient owns this prescription
+            if (prescription.PatientId != userId)
+            {
+                return Forbid();
+            }
+
+            var qrToken = await _prescriptionService.GenerateQrCodeAsync(id);
+            return Ok(new 
+            { 
+                qrToken, 
+                expiresAt = DateTime.UtcNow.AddMinutes(5),
+                message = "QR code is valid for 5 minutes"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating QR code for prescription {PrescriptionId}", id);
+            return StatusCode(500, new { error = "Failed to generate QR code" });
+        }
+    }
+
+    /// <summary>
+    /// Validate QR code (Pharmacist only)
+    /// </summary>
+    [HttpPost("validate-qr")]
+    [Authorize(Roles = "Pharmacist,Admin")]
+    public async Task<ActionResult<Prescription>> ValidateQrCode([FromBody] ValidateQrRequest request)
+    {
+        try
+        {
+            var prescription = await _prescriptionService.ValidateQrCodeAsync(request.QrToken);
+            if (prescription == null)
+            {
+                return NotFound(new { error = "Invalid or expired QR code" });
+            }
+
+            return Ok(prescription);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating QR code");
+            return StatusCode(500, new { error = "Failed to validate QR code" });
+        }
+    }
+
+    /// <summary>
+    /// Fulfill prescription (Pharmacist only)
+    /// </summary>
+    [HttpPost("{id}/fulfill")]
+    [Authorize(Roles = "Pharmacist,Admin")]
+    public async Task<ActionResult<Prescription>> FulfillPrescription(Guid id, [FromBody] FulfillPrescriptionRequest request)
+    {
+        try
+        {
+            var fulfilled = await _prescriptionService.FulfillPrescriptionAsync(id, request.PharmacyId);
+            return Ok(fulfilled);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Prescription not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fulfilling prescription {PrescriptionId}", id);
+            return StatusCode(500, new { error = "Failed to fulfill prescription" });
+        }
+    }
+
+    /// <summary>
+    /// Fulfill prescription item (Pharmacist only)
+    /// </summary>
+    [HttpPost("item/{itemId}/fulfill")]
+    [Authorize(Roles = "Pharmacist,Admin")]
+    public async Task<ActionResult<PrescriptionItem>> FulfillPrescriptionItem(Guid itemId)
+    {
+        try
+        {
+            var fulfilledItem = await _prescriptionService.FulfillPrescriptionItemAsync(itemId);
+            return Ok(fulfilledItem);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Prescription item not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fulfilling prescription item {ItemId}", itemId);
+            return StatusCode(500, new { error = "Failed to fulfill prescription item" });
+        }
+    }
+
+    /// <summary>
+    /// Cancel prescription (Doctor only)
+    /// </summary>
+    [HttpPost("{id}/cancel")]
+    [Authorize(Roles = "Doctor,Admin")]
+    public async Task<ActionResult<Prescription>> Cancel(Guid id, [FromBody] CancelPrescriptionRequest request)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+
+            if (prescription == null)
+            {
+                return NotFound(new { error = "Prescription not found" });
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole != "Admin" && prescription.DoctorId != userId)
+            {
+                return Forbid();
+            }
+
+            var cancelled = await _prescriptionService.CancelPrescriptionAsync(id, request.Reason);
+            return Ok(cancelled);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling prescription {PrescriptionId}", id);
+            return StatusCode(500, new { error = "Failed to cancel prescription" });
+        }
+    }
+
+    /// <summary>
+    /// Check if prescription is expired
+    /// </summary>
+    [HttpGet("{id}/is-expired")]
+    public async Task<ActionResult<object>> IsExpired(Guid id)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+
+            if (prescription == null)
+            {
+                return NotFound(new { error = "Prescription not found" });
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole != "Admin" && userRole != "Pharmacist" && 
+                prescription.PatientId != userId && prescription.DoctorId != userId)
+            {
+                return Forbid();
+            }
+
+            var isExpired = await _prescriptionService.IsExpiredAsync(id);
+            return Ok(new { prescriptionId = id, isExpired });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking prescription expiry {PrescriptionId}", id);
+            return StatusCode(500, new { error = "Failed to check expiry" });
+        }
+    }
+
+    /// <summary>
+    /// Get prescriptions expiring soon (Admin/Pharmacist)
+    /// </summary>
+    [HttpGet("expiring-soon")]
+    [Authorize(Roles = "Admin,Pharmacist")]
+    public async Task<ActionResult<List<Prescription>>> GetExpiringSoon([FromQuery] int daysThreshold = 7)
+    {
+        try
+        {
+            var prescriptions = await _prescriptionService.GetExpiringSoonAsync(daysThreshold);
+            return Ok(prescriptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving expiring prescriptions");
+            return StatusCode(500, new { error = "Failed to retrieve prescriptions" });
+        }
+    }
+}
+
+public record ValidateQrRequest(string QrToken);
+
+public record FulfillPrescriptionRequest(Guid PharmacyId);
