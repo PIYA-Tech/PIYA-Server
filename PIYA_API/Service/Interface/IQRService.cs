@@ -20,8 +20,9 @@ public interface IQRService
     
     /// <summary>
     /// Generate time-limited QR token for any entity type
+    /// If validityMinutes is null, uses configured default from appsettings
     /// </summary>
-    Task<(string Token, Guid TokenId)> GenerateQrTokenAsync(Guid entityId, string entityType, Guid userId, int validityMinutes = 5, string? ipAddress = null, string? userAgent = null);
+    Task<(string Token, Guid TokenId)> GenerateQrTokenAsync(Guid entityId, string entityType, Guid userId, int? validityMinutes = null, string? ipAddress = null, string? userAgent = null);
     
     /// <summary>
     /// Validate QR token and return entity information (does not mark as used)

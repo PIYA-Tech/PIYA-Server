@@ -226,8 +226,10 @@ graph LR
 - [x] **Create appsettings.json Template**
 - [x] **Add Connection String Documentation**
 - [x] **Environment-Specific Settings**
-- [ ] **External API Configuration (Medication DB)**
-- [ ] **QR Token Signing Key Management**
+- [x] **External API Configuration (Medication DB)** (ExternalApisOptions with
+  Azerbaijan Pharmaceutical Registry, Google Maps, Email/SMS services)
+- [x] **QR Token Signing Key Management** (SecurityOptions with validation,
+  strongly-typed configuration, startup validation)
 
 ---
 

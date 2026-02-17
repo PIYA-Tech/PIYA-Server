@@ -1,0 +1,421 @@
+namespace PIYA_API.Configuration;
+
+/// <summary>
+/// Security configuration options
+/// </summary>
+public class SecurityOptions
+{
+    public const string SectionName = "Security";
+
+    /// <summary>
+    /// HMAC-SHA256 signing key for QR tokens (CRITICAL: Must be 32+ characters in production)
+    /// </summary>
+    public string QrSigningKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// QR token validity period in minutes (default: 5 minutes)
+    /// </summary>
+    public int QrTokenExpiryMinutes { get; set; } = 5;
+
+    /// <summary>
+    /// Days to retain expired QR tokens before cleanup (default: 7 days)
+    /// </summary>
+    public int QrTokenCleanupDays { get; set; } = 7;
+
+    /// <summary>
+    /// BCrypt work factor for password hashing (10-12 recommended)
+    /// </summary>
+    public int PasswordHashWorkFactor { get; set; } = 11;
+
+    /// <summary>
+    /// Maximum failed login attempts before lockout
+    /// </summary>
+    public int MaxLoginAttempts { get; set; } = 5;
+
+    /// <summary>
+    /// Account lockout duration in minutes
+    /// </summary>
+    public int LockoutDurationMinutes { get; set; } = 15;
+
+    /// <summary>
+    /// Require HTTPS for all endpoints (production only)
+    /// </summary>
+    public bool RequireHttps { get; set; } = false;
+
+    /// <summary>
+    /// Enable CORS
+    /// </summary>
+    public bool EnableCors { get; set; } = true;
+
+    /// <summary>
+    /// Allowed CORS origins
+    /// </summary>
+    public string[] AllowedOrigins { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Validates security configuration on startup
+    /// </summary>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(QrSigningKey))
+        {
+            throw new InvalidOperationException("Security:QrSigningKey is required. Generate with: openssl rand -base64 32");
+        }
+
+        if (QrSigningKey.Length < 32)
+        {
+            throw new InvalidOperationException("Security:QrSigningKey must be at least 32 characters for security. Current length: " + QrSigningKey.Length);
+        }
+
+        if (QrSigningKey.Contains("CHANGE") || QrSigningKey.Contains("REPLACE"))
+        {
+            throw new InvalidOperationException("Security:QrSigningKey must be changed from default value in production.");
+        }
+
+        if (QrTokenExpiryMinutes < 1 || QrTokenExpiryMinutes > 60)
+        {
+            throw new InvalidOperationException("Security:QrTokenExpiryMinutes must be between 1 and 60 minutes.");
+        }
+
+        if (PasswordHashWorkFactor < 10 || PasswordHashWorkFactor > 15)
+        {
+            throw new InvalidOperationException("Security:PasswordHashWorkFactor must be between 10 and 15.");
+        }
+    }
+}
+
+/// <summary>
+/// External API configuration options
+/// </summary>
+public class ExternalApisOptions
+{
+    public const string SectionName = "ExternalApis";
+
+    public AzerbaijanPharmaceuticalRegistryOptions AzerbaijanPharmaceuticalRegistry { get; set; } = new();
+    public MedicationDatabaseOptions MedicationDatabase { get; set; } = new();
+    public GoogleMapsOptions GoogleMaps { get; set; } = new();
+    public EmailServiceOptions EmailService { get; set; } = new();
+    public SmsServiceOptions SmsService { get; set; } = new();
+}
+
+/// <summary>
+/// Azerbaijan Pharmaceutical Registry API configuration
+/// </summary>
+public class AzerbaijanPharmaceuticalRegistryOptions
+{
+    /// <summary>
+    /// Base URL for OpenData.az API
+    /// </summary>
+    public string BaseUrl { get; set; } = "https://opendata.az/api/v1";
+
+    /// <summary>
+    /// Medications endpoint
+    /// </summary>
+    public string Endpoint { get; set; } = "/medications";
+
+    /// <summary>
+    /// API key (if required)
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// HTTP request timeout in seconds
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Number of retry attempts on failure
+    /// </summary>
+    public int RetryAttempts { get; set; } = 3;
+
+    /// <summary>
+    /// Cache duration for medication data in minutes
+    /// </summary>
+    public int CacheDurationMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Enable API integration
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Full API URL
+    /// </summary>
+    public string FullUrl => $"{BaseUrl.TrimEnd('/')}{Endpoint}";
+}
+
+/// <summary>
+/// Medication database synchronization configuration
+/// </summary>
+public class MedicationDatabaseOptions
+{
+    /// <summary>
+    /// Data provider (Azerbaijan, WHO, OpenFDA)
+    /// </summary>
+    public string Provider { get; set; } = "Azerbaijan";
+
+    /// <summary>
+    /// Enable automatic synchronization
+    /// </summary>
+    public bool SyncEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Synchronization interval in hours
+    /// </summary>
+    public int SyncIntervalHours { get; set; } = 24;
+
+    /// <summary>
+    /// Last synchronization timestamp
+    /// </summary>
+    public DateTime? LastSyncTimestamp { get; set; }
+}
+
+/// <summary>
+/// Google Maps API configuration
+/// </summary>
+public class GoogleMapsOptions
+{
+    /// <summary>
+    /// Google Maps API key
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Enable Google Maps integration
+    /// </summary>
+    public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// Geocoding API endpoint
+    /// </summary>
+    public string GeocodeEndpoint { get; set; } = "https://maps.googleapis.com/maps/api/geocode/json";
+
+    /// <summary>
+    /// Distance Matrix API endpoint
+    /// </summary>
+    public string DistanceMatrixEndpoint { get; set; } = "https://maps.googleapis.com/maps/api/distancematrix/json";
+
+    /// <summary>
+    /// Validates Google Maps configuration
+    /// </summary>
+    public void Validate()
+    {
+        if (Enabled && string.IsNullOrWhiteSpace(ApiKey))
+        {
+            throw new InvalidOperationException("ExternalApis:GoogleMaps:ApiKey is required when Enabled is true.");
+        }
+    }
+}
+
+/// <summary>
+/// Email service configuration (SMTP)
+/// </summary>
+public class EmailServiceOptions
+{
+    /// <summary>
+    /// Email provider (SMTP, SendGrid, etc.)
+    /// </summary>
+    public string Provider { get; set; } = "SMTP";
+
+    /// <summary>
+    /// SMTP server host
+    /// </summary>
+    public string SmtpHost { get; set; } = string.Empty;
+
+    /// <summary>
+    /// SMTP server port
+    /// </summary>
+    public int SmtpPort { get; set; } = 587;
+
+    /// <summary>
+    /// SMTP username
+    /// </summary>
+    public string SmtpUsername { get; set; } = string.Empty;
+
+    /// <summary>
+    /// SMTP password
+    /// </summary>
+    public string SmtpPassword { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sender email address
+    /// </summary>
+    public string FromEmail { get; set; } = "noreply@piya.az";
+
+    /// <summary>
+    /// Sender display name
+    /// </summary>
+    public string FromName { get; set; } = "PIYA Healthcare";
+
+    /// <summary>
+    /// Enable SSL/TLS
+    /// </summary>
+    public bool EnableSsl { get; set; } = true;
+
+    /// <summary>
+    /// Enable email service
+    /// </summary>
+    public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// Validates email configuration
+    /// </summary>
+    public void Validate()
+    {
+        if (Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(SmtpHost))
+            {
+                throw new InvalidOperationException("ExternalApis:EmailService:SmtpHost is required when Enabled is true.");
+            }
+
+            if (string.IsNullOrWhiteSpace(SmtpUsername))
+            {
+                throw new InvalidOperationException("ExternalApis:EmailService:SmtpUsername is required when Enabled is true.");
+            }
+
+            if (string.IsNullOrWhiteSpace(SmtpPassword))
+            {
+                throw new InvalidOperationException("ExternalApis:EmailService:SmtpPassword is required when Enabled is true.");
+            }
+        }
+    }
+}
+
+/// <summary>
+/// SMS service configuration (Twilio)
+/// </summary>
+public class SmsServiceOptions
+{
+    /// <summary>
+    /// SMS provider (Twilio, etc.)
+    /// </summary>
+    public string Provider { get; set; } = "Twilio";
+
+    /// <summary>
+    /// Twilio Account SID
+    /// </summary>
+    public string AccountSid { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Twilio Auth Token
+    /// </summary>
+    public string AuthToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Twilio phone number (sender)
+    /// </summary>
+    public string FromPhoneNumber { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Enable SMS service
+    /// </summary>
+    public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// Validates SMS configuration
+    /// </summary>
+    public void Validate()
+    {
+        if (Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(AccountSid))
+            {
+                throw new InvalidOperationException("ExternalApis:SmsService:AccountSid is required when Enabled is true.");
+            }
+
+            if (string.IsNullOrWhiteSpace(AuthToken))
+            {
+                throw new InvalidOperationException("ExternalApis:SmsService:AuthToken is required when Enabled is true.");
+            }
+
+            if (string.IsNullOrWhiteSpace(FromPhoneNumber))
+            {
+                throw new InvalidOperationException("ExternalApis:SmsService:FromPhoneNumber is required when Enabled is true.");
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Feature flags configuration
+/// </summary>
+public class FeaturesOptions
+{
+    public const string SectionName = "Features";
+
+    public bool EnableTwoFactorAuth { get; set; } = true;
+    public bool EnableQrCodeSystem { get; set; } = true;
+    public bool EnableAppointmentSystem { get; set; } = true;
+    public bool EnablePrescriptionSystem { get; set; } = true;
+    public bool EnableAuditLogging { get; set; } = true;
+    public bool EnableRateLimiting { get; set; } = false;
+    public bool EnableCaching { get; set; } = false;
+}
+
+/// <summary>
+/// Rate limiting configuration
+/// </summary>
+public class RateLimitingOptions
+{
+    public const string SectionName = "RateLimiting";
+
+    public bool EnableGlobal { get; set; } = false;
+    public int PermitLimit { get; set; } = 100;
+    public int WindowSeconds { get; set; } = 60;
+    public int QueueLimit { get; set; } = 0;
+    public Dictionary<string, EndpointRateLimitOptions> Endpoints { get; set; } = new();
+}
+
+/// <summary>
+/// Per-endpoint rate limiting configuration
+/// </summary>
+public class EndpointRateLimitOptions
+{
+    public int PermitLimit { get; set; }
+    public int WindowSeconds { get; set; }
+}
+
+/// <summary>
+/// Caching configuration
+/// </summary>
+public class CachingOptions
+{
+    public const string SectionName = "Caching";
+
+    /// <summary>
+    /// Cache provider (InMemory, Redis)
+    /// </summary>
+    public string Provider { get; set; } = "InMemory";
+
+    /// <summary>
+    /// Redis connection string (if Provider is Redis)
+    /// </summary>
+    public string RedisConnectionString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Default cache expiration in minutes
+    /// </summary>
+    public int DefaultExpirationMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Medication data cache duration in minutes
+    /// </summary>
+    public int MedicationCacheMinutes { get; set; } = 1440;
+
+    /// <summary>
+    /// Pharmacy data cache duration in minutes
+    /// </summary>
+    public int PharmacyCacheMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Validates caching configuration
+    /// </summary>
+    public void Validate()
+    {
+        if (Provider == "Redis" && string.IsNullOrWhiteSpace(RedisConnectionString))
+        {
+            throw new InvalidOperationException("Caching:RedisConnectionString is required when Provider is Redis.");
+        }
+    }
+}

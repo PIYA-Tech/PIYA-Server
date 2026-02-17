@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PIYA_API.Configuration;
 using PIYA_API.Data;
 using PIYA_API.Service.Class;
 using PIYA_API.Service.Interface;
@@ -14,6 +15,35 @@ builder.Services.AddOpenApi();
 
 // Add HttpClient factory for external API calls
 builder.Services.AddHttpClient();
+
+// Configure strongly-typed configuration options
+builder.Services.Configure<SecurityOptions>(
+    builder.Configuration.GetSection(SecurityOptions.SectionName));
+builder.Services.Configure<ExternalApisOptions>(
+    builder.Configuration.GetSection(ExternalApisOptions.SectionName));
+builder.Services.Configure<FeaturesOptions>(
+    builder.Configuration.GetSection(FeaturesOptions.SectionName));
+builder.Services.Configure<RateLimitingOptions>(
+    builder.Configuration.GetSection(RateLimitingOptions.SectionName));
+builder.Services.Configure<CachingOptions>(
+    builder.Configuration.GetSection(CachingOptions.SectionName));
+
+// Validate critical configuration on startup
+builder.Services.AddOptions<SecurityOptions>()
+    .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
+    .Validate(options =>
+    {
+        if (string.IsNullOrWhiteSpace(options.QrSigningKey) || options.QrSigningKey.Length < 32)
+        {
+            return false;
+        }
+        if (options.QrSigningKey.Contains("CHANGE") || options.QrSigningKey.Contains("REPLACE"))
+        {
+            return false;
+        }
+        return true;
+    }, "Security:QrSigningKey must be configured, at least 32 characters, and changed from default. Generate with: openssl rand -base64 64")
+    .ValidateOnStart();
 
 builder.Services.AddDbContext<PharmacyApiDbContext>(options =>
 {

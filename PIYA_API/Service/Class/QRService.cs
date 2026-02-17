@@ -2,7 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using PIYA_API.Configuration;
 using PIYA_API.Data;
 using PIYA_API.Model;
 using PIYA_API.Service.Interface;
@@ -12,22 +13,32 @@ namespace PIYA_API.Service.Class;
 public class QRService : IQRService
 {
     private readonly PharmacyApiDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly SecurityOptions _securityOptions;
     private readonly ILogger<QRService> _logger;
     private readonly IAuditService _auditService;
     private readonly string _secretKey;
+    private readonly int _tokenExpiryMinutes;
 
     public QRService(
         PharmacyApiDbContext context,
-        IConfiguration configuration,
+        IOptions<SecurityOptions> securityOptions,
         ILogger<QRService> logger,
         IAuditService auditService)
     {
         _context = context;
-        _configuration = configuration;
+        _securityOptions = securityOptions.Value;
         _logger = logger;
         _auditService = auditService;
-        _secretKey = _configuration["Security:QrSigningKey"] ?? "DEFAULT_QR_SECRET_KEY_CHANGE_IN_PRODUCTION_MINIMUM_32_CHARACTERS";
+        _secretKey = _securityOptions.QrSigningKey;
+        _tokenExpiryMinutes = _securityOptions.QrTokenExpiryMinutes;
+
+        // Validate configuration on startup
+        if (string.IsNullOrWhiteSpace(_secretKey) || _secretKey.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Security:QrSigningKey must be configured and at least 32 characters. " +
+                "Generate with: openssl rand -base64 32");
+        }
     }
 
     public async Task<(string Token, Guid TokenId)> GeneratePrescriptionQrTokenAsync(
@@ -73,14 +84,15 @@ public class QRService : IQRService
         Guid entityId, 
         string entityType, 
         Guid userId, 
-        int validityMinutes = 5, 
+        int? validityMinutes = null, 
         string? ipAddress = null, 
         string? userAgent = null)
     {
         try
         {
             var tokenId = Guid.NewGuid();
-            var expiresAt = DateTime.UtcNow.AddMinutes(validityMinutes);
+            var expiryMinutes = validityMinutes ?? _tokenExpiryMinutes; // Use configured default
+            var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
             var nonce = Guid.NewGuid().ToString(); // Prevent duplicate tokens
 
             // Create signed payload
