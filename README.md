@@ -7,7 +7,19 @@
 - [x] **Azerbaijan Pharmaceutical Registry Integration** (OpenData.az API -
   sync service ready)
 - [x] **Medication Search & Autocomplete**
-- [x] **Active Ingredient Tracking**
+
+## Features
+
+- [x] **Email Verification** (EmailVerificationService with token-based verification)
+- [x] **Password Reset Flow** (PasswordResetService with secure token system)
+- [x] **Two-Factor Authentication**
+- [x] **File Upload (Medical Documents)** (FileUploadService with local/cloud storage support)
+- [x] **Caching (Redis)** (CacheService with distributed caching support)
+- [x] **Rate Limiting** (RateLimitingMiddleware with configurable limits)
+- [x] **CORS Configuration** (Configured with environment-based policies)
+- [x] **Health Check Endpoints** (5 endpoints: basic, detailed, ready, live, version)
+- [x] **Real-time Notifications (SignalR)** (NotificationHub with user groups and targeted messaging)
+- [x] **Push Notifications (FCM)** (FcmService with multi-device support)Active Ingredient Tracking**
 - [x] **ATC Code Classification**
 - [x] **Prescription-Required Flag**
 - [x] **Medication Alternatives/Generics**
@@ -325,20 +337,20 @@ graph LR
 
 ---
 
-### Low Priority
+## Low Priority
 
 ### Advanced Features
 
-- [ ] **Email Verification**
-- [ ] **Password Reset Flow**
+- [x] **Email Verification** (EmailVerificationService with token-based verification)
+- [x] **Password Reset Flow** (PasswordResetService with secure token system)
 - [x] **Two-Factor Authentication**
-- [ ] **File Upload (Medical Documents)**
-- [ ] **Caching (Redis)**
-- [ ] **Rate Limiting**
-- [ ] **CORS Configuration**
-- [ ] **Health Check Endpoints**
-- [ ] **Real-time Notifications (SignalR)**
-- [ ] **Push Notifications (FCM)**
+- [x] **File Upload (Medical Documents)** (FileUploadService with SHA-256 hashing, 13 document types)
+- [x] **Caching (Redis)** (CacheService with distributed caching, fallback to in-memory)
+- [x] **Rate Limiting** (RateLimitingMiddleware with configurable limits)
+- [x] **CORS Configuration** (Configured with environment-based policies)
+- [x] **Health Check Endpoints** (5 endpoints: basic, detailed, ready, live, version)
+- [x] **Real-time Notifications (SignalR)** (NotificationHub with user groups, appointment/prescription updates)
+- [x] **Push Notifications (FCM)** (FcmService with multi-device support, automatic token management)
 
 ### Integration & External Services
 

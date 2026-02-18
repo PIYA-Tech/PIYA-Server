@@ -11,6 +11,10 @@ namespace PIYA_API.Data
         public DbSet<Token> Tokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<TwoFactorAuth> TwoFactorAuths { get; set; }
+        public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<MedicalDocument> MedicalDocuments { get; set; }
+        public DbSet<DeviceToken> DeviceTokens { get; set; }
         
         // Healthcare entities
         public DbSet<Hospital> Hospitals { get; set; }
@@ -119,6 +123,86 @@ namespace PIYA_API.Data
             
             modelBuilder.Entity<UserPermission>()
                 .HasIndex(up => new { up.UserId, up.Permission });
+            
+            // EmailVerificationToken - User relationship
+            modelBuilder.Entity<EmailVerificationToken>()
+                .HasOne(evt => evt.User)
+                .WithMany()
+                .HasForeignKey(evt => evt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<EmailVerificationToken>()
+                .HasIndex(evt => evt.TokenHash);
+            
+            modelBuilder.Entity<EmailVerificationToken>()
+                .HasIndex(evt => evt.Email);
+            
+            // PasswordResetToken - User relationship
+            modelBuilder.Entity<PasswordResetToken>()
+                .HasOne(prt => prt.User)
+                .WithMany()
+                .HasForeignKey(prt => prt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<PasswordResetToken>()
+                .HasIndex(prt => prt.TokenHash);
+            
+            modelBuilder.Entity<PasswordResetToken>()
+                .HasIndex(prt => prt.Email);
+            
+            // MedicalDocument - User relationship
+            modelBuilder.Entity<MedicalDocument>()
+                .HasOne(md => md.User)
+                .WithMany()
+                .HasForeignKey(md => md.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasOne(md => md.UploadedBy)
+                .WithMany()
+                .HasForeignKey(md => md.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasOne(md => md.VerifiedBy)
+                .WithMany()
+                .HasForeignKey(md => md.VerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasOne(md => md.Appointment)
+                .WithMany()
+                .HasForeignKey(md => md.AppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasOne(md => md.Prescription)
+                .WithMany()
+                .HasForeignKey(md => md.PrescriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasIndex(md => md.UserId);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasIndex(md => md.DocumentType);
+            
+            modelBuilder.Entity<MedicalDocument>()
+                .HasIndex(md => md.FileHash);
+            
+            // DeviceToken - User relationship
+            modelBuilder.Entity<DeviceToken>()
+                .HasOne(dt => dt.User)
+                .WithMany()
+                .HasForeignKey(dt => dt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<DeviceToken>()
+                .HasIndex(dt => dt.Token)
+                .IsUnique();
+            
+            modelBuilder.Entity<DeviceToken>()
+                .HasIndex(dt => dt.UserId);
         }
     }
 }

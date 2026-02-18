@@ -52,9 +52,62 @@ builder.Services.AddOptions<SecurityOptions>()
     }, "Security:QrSigningKey must be configured, at least 32 characters, and changed from default. Generate with: openssl rand -base64 64")
     .ValidateOnStart();
 
+// Configure Redis Distributed Cache
+var cacheProvider = builder.Configuration["Caching:Provider"];
+if (cacheProvider == "Redis")
+{
+    var redisConnectionString = builder.Configuration["Caching:RedisConnectionString"];
+    if (!string.IsNullOrEmpty(redisConnectionString) && 
+        !redisConnectionString.Contains("REPLACE") && 
+        !redisConnectionString.Contains("localhost:6379"))
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = "PIYA_";
+        });
+    }
+    else
+    {
+        // Fallback to in-memory cache if Redis is not properly configured
+        Console.WriteLine("Warning: Redis not configured. Using in-memory cache.");
+        builder.Services.AddDistributedMemoryCache();
+    }
+}
+else
+{
+    // Use in-memory cache by default
+    builder.Services.AddDistributedMemoryCache();
+}
+
 builder.Services.AddDbContext<PharmacyApiDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+// Configure CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+    ?? new[] { "http://localhost:3000", "http://localhost:5173" };
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PIYAPolicy", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials()
+              .WithExposedHeaders("X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset");
+    });
+    
+    // Development policy - allow all origins
+    options.AddPolicy("Development", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders("X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset");
+    });
 });
 
 // Configure JWT Authentication
@@ -137,6 +190,24 @@ builder.Services.AddScoped<IAzerbaijanPharmaceuticalRegistryService, AzerbaijanP
 builder.Services.AddScoped<IDoctorProfileService, DoctorProfileService>();
 builder.Services.AddScoped<IHospitalService, HospitalService>();
 
+// Email & Authentication Enhancement Services
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
+// File Upload Service
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+
+// Cache Service
+builder.Services.AddScoped<ICacheService, CacheService>();
+
+// Real-time SignalR Notification Service
+builder.Services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
+builder.Services.AddSignalR();
+
+// Push Notification Service (FCM)
+builder.Services.AddSingleton<IFcmService, FcmService>();
+
 // Access Control & Staff Management Services
 builder.Services.AddScoped<IPharmacyStaffService, PharmacyStaffService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
@@ -174,6 +245,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Configure CORS
+var isDevelopment = app.Environment.IsDevelopment();
+app.UseCors(isDevelopment ? "Development" : "PIYAPolicy");
+
+// Add Rate Limiting Middleware
+app.UseMiddleware<PIYA_API.Middleware.RateLimitingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -190,4 +268,8 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication(); // Add this before UseAuthorization
 app.UseAuthorization();
 app.MapControllers();
+
+// Map SignalR Hubs
+app.MapHub<PIYA_API.Hubs.NotificationHub>("/notificationHub");
+
 app.Run();
