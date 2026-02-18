@@ -127,7 +127,7 @@ public class QRValidationController : ControllerBase
                     Frequency = item.Frequency,
                     Duration = item.Duration,
                     Instructions = item.Instructions
-                }).ToList() ?? new List<MedicationItemDto>(),
+                }).ToList() ?? [],
                 IssuedAt = prescription.IssuedAt,
                 ExpiresAt = prescription.ExpiresAt,
                 Message = "Prescription validated successfully. Status updated to Fulfilled."

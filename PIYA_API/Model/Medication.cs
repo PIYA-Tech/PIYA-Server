@@ -91,5 +91,5 @@ public class Medication
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties
-    public ICollection<PharmacyInventory> InventoryRecords { get; set; } = new List<PharmacyInventory>();
+    public ICollection<PharmacyInventory> InventoryRecords { get; set; } = [];
 }

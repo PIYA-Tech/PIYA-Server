@@ -92,5 +92,5 @@ public class Prescription
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties
-    public ICollection<PrescriptionItem> Items { get; set; } = new List<PrescriptionItem>();
+    public ICollection<PrescriptionItem> Items { get; set; } = [];
 }

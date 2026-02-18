@@ -92,8 +92,8 @@ public class PharmacyInventory
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties
-    public ICollection<InventoryBatch> Batches { get; set; } = new List<InventoryBatch>();
-    public ICollection<InventoryHistory> History { get; set; } = new List<InventoryHistory>();
+    public ICollection<InventoryBatch> Batches { get; set; } = [];
+    public ICollection<InventoryHistory> History { get; set; } = [];
     
     /// <summary>
     /// Check if stock is low (below minimum level)

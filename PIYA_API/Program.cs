@@ -7,27 +7,64 @@ using PIYA_API.Configuration;
 using PIYA_API.Data;
 using PIYA_API.Service.Class;
 using PIYA_API.Service.Interface;
+using Serilog;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Asp.Versioning;
 
-// Enable legacy timestamp behavior for Npgsql to handle non-UTC DateTimes
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build())
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/piya-api-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-var builder = WebApplication.CreateBuilder(args);
+try
+{
+    Log.Information("Starting PIYA Healthcare API");
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    // Enable legacy timestamp behavior for Npgsql to handle non-UTC DateTimes
+    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Use Serilog for logging
+    builder.Host.UseSerilog();
+
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        });
+    
+    // Add FluentValidation
+    builder.Services.AddFluentValidationAutoValidation();
+    builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+    
+    // Add API Versioning
+    builder.Services.AddApiVersioning(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = ApiVersionReader.Combine(
+            new UrlSegmentApiVersionReader(),
+            new HeaderApiVersionReader("X-Api-Version"));
     });
-builder.Services.AddOpenApi();
+    
+    builder.Services.AddOpenApi();
 
-// Add HttpClient factory for external API calls
-builder.Services.AddHttpClient();
+    // Add HttpClient factory for external API calls
+    builder.Services.AddHttpClient();
 
-// Configure strongly-typed configuration options
-builder.Services.Configure<SecurityOptions>(
-    builder.Configuration.GetSection(SecurityOptions.SectionName));
-builder.Services.Configure<ExternalApisOptions>(
-    builder.Configuration.GetSection(ExternalApisOptions.SectionName));
+    // Configure strongly-typed configuration options
+    builder.Services.Configure<SecurityOptions>(
+        builder.Configuration.GetSection(SecurityOptions.SectionName));
+    builder.Services.Configure<ExternalApisOptions>(
+        builder.Configuration.GetSection(ExternalApisOptions.SectionName));
 builder.Services.Configure<FeaturesOptions>(
     builder.Configuration.GetSection(FeaturesOptions.SectionName));
 builder.Services.Configure<RateLimitingOptions>(
@@ -265,11 +302,24 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection(); // Commented out for development
-app.UseAuthentication(); // Add this before UseAuthorization
-app.UseAuthorization();
-app.MapControllers();
+    app.UseAuthentication(); // Add this before UseAuthorization
+    app.UseAuthorization();
+    
+    // Add Global Exception Handling Middleware
+    app.UseMiddleware<PIYA_API.Middleware.GlobalExceptionHandlingMiddleware>();
+    
+    app.MapControllers();
 
-// Map SignalR Hubs
-app.MapHub<PIYA_API.Hubs.NotificationHub>("/notificationHub");
+    // Map SignalR Hubs
+    app.MapHub<PIYA_API.Hubs.NotificationHub>("/notificationHub");
 
-app.Run();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

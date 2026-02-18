@@ -85,7 +85,7 @@ public class MedicationService(
         var medication = await GetByIdAsync(medicationId);
         if (medication == null || medication.GenericAlternatives.Count == 0)
         {
-            return new List<Medication>();
+            return [];
         }
 
         return await _context.Medications

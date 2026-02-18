@@ -24,11 +24,11 @@ public class RateLimitingMiddleware
         _logger = logger;
         _requestLimit = int.Parse(configuration["RateLimit:RequestLimit"] ?? "100");
         _timeWindow = TimeSpan.FromMinutes(int.Parse(configuration["RateLimit:TimeWindowMinutes"] ?? "1"));
-        _whitelistedPaths = configuration.GetSection("RateLimit:WhitelistedPaths").Get<List<string>>() ?? new List<string>
-        {
+        _whitelistedPaths = configuration.GetSection("RateLimit:WhitelistedPaths").Get<List<string>>() ??
+        [
             "/api/Health",
             "/swagger"
-        };
+        ];
 
         // Cleanup task - runs every 5 minutes
         Task.Run(async () =>

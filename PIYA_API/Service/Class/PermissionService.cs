@@ -230,35 +230,32 @@ public class PermissionService : IPermissionService
     {
         return role switch
         {
-            UserRole.Patient => new List<string>
-            {
-                // Patients can view their own data
-            },
+            UserRole.Patient => [],
             
-            UserRole.Doctor => new List<string>
-            {
+            UserRole.Doctor =>
+            [
                 Permissions.PrescriptionCreate,
                 Permissions.PrescriptionApprove,
                 Permissions.DoctorUpdate // Own profile
-            },
+            ],
             
-            UserRole.Pharmacist => new List<string>
-            {
+            UserRole.Pharmacist =>
+            [
                 Permissions.InventoryUpdate,
                 Permissions.PrescriptionFulfill
-            },
+            ],
             
-            UserRole.PharmacyManager => new List<string>
-            {
+            UserRole.PharmacyManager =>
+            [
                 Permissions.PharmacyManage,
                 Permissions.StaffManage,
                 Permissions.InventoryManage,
                 Permissions.PrescriptionFulfill,
                 Permissions.PrescriptionViewAll
-            },
+            ],
             
-            UserRole.Admin => new List<string>
-            {
+            UserRole.Admin =>
+            [
                 Permissions.SystemAdmin,
                 Permissions.DashboardAccess,
                 Permissions.DashboardViewAnalytics,
@@ -270,10 +267,10 @@ public class PermissionService : IPermissionService
                 Permissions.DoctorViewAll,
                 Permissions.PatientViewAll,
                 Permissions.AuditLogView
-            },
+            ],
             
-            UserRole.SuperAdmin => new List<string>
-            {
+            UserRole.SuperAdmin =>
+            [
                 Permissions.SystemAdmin,
                 Permissions.SystemConfigUpdate,
                 Permissions.DashboardAccess,
@@ -289,9 +286,9 @@ public class PermissionService : IPermissionService
                 Permissions.DoctorVerify,
                 Permissions.DoctorSuspend,
                 Permissions.AuditLogExport
-            },
+            ],
             
-            _ => new List<string>()
+            _ => []
         };
     }
 

@@ -419,7 +419,7 @@ public class QRService : IQRService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting token history");
-            return new List<QRToken>();
+            return [];
         }
     }
 

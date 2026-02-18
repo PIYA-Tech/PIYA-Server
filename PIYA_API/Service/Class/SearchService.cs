@@ -151,8 +151,8 @@ public class SearchService : ISearchService
                     MedicationsInStock = 1,
                     StockMatchPercentage = 100m,
                     CanFulfillCompletely = true,
-                    AvailableMedications = new List<MedicationStock>
-                    {
+                    AvailableMedications =
+                    [
                         new MedicationStock
                         {
                             MedicationId = medicationId,
@@ -161,7 +161,7 @@ public class SearchService : ISearchService
                             ExpirationDate = inventory.ExpirationDate,
                             Price = inventory.Price
                         }
-                    }
+                    ]
                 };
 
                 results.Add(result);
@@ -191,7 +191,7 @@ public class SearchService : ISearchService
 
             if (medicationIds == null || medicationIds.Count == 0)
             {
-                return new List<PharmacySearchResult>();
+                return [];
             }
 
             // Get all pharmacies
@@ -291,12 +291,7 @@ public class SearchService : ISearchService
             _logger.LogInformation("Searching pharmacies with full prescription stock for prescription {PrescriptionId}", prescriptionId);
 
             // Get prescription items
-            var prescription = await _prescriptionService.GetByIdAsync(prescriptionId);
-            if (prescription == null)
-            {
-                throw new InvalidOperationException($"Prescription {prescriptionId} not found");
-            }
-
+            var prescription = await _prescriptionService.GetByIdAsync(prescriptionId) ?? throw new InvalidOperationException($"Prescription {prescriptionId} not found");
             var prescriptionItems = await _dbContext.PrescriptionItems
                 .Where(pi => pi.PrescriptionId == prescriptionId)
                 .ToListAsync();
@@ -304,7 +299,7 @@ public class SearchService : ISearchService
             if (prescriptionItems.Count == 0)
             {
                 _logger.LogWarning("Prescription {PrescriptionId} has no items", prescriptionId);
-                return new List<PharmacySearchResult>();
+                return [];
             }
 
             var medicationIds = prescriptionItems.Select(pi => pi.MedicationId).ToList();
