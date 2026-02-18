@@ -1,7 +1,9 @@
 # PIYA Backend API
 
 **A Full Digital Healthcare Coordination Platform** - Connecting Patients,
- Doctors, Ho### Medication Database (Service Implemented [x])
+ Doctors, Hospitals, and Pharmacies
+
+## Medication Database (Service Implemented)
 
 - [x] **Medication Entity Model**
 - [x] **Azerbaijan Pharmaceutical Registry Integration** (OpenData.az API -
