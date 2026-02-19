@@ -1,5 +1,10 @@
 # PIYA Backend API
 
+Built with ASP.NET Core 9.0 and PostgreSQL | Healthcare Ecosystem |
+HIPAA-Compliant Ready
+
+## Progress: ![Progress](https://geps.dev/progress/89)
+
 **A Full Digital Healthcare Coordination Platform** - Connecting Patients,
  Doctors, Hospitals, and Pharmacies
 
@@ -37,11 +42,6 @@
 - [x] **Prescription-Required Flag**
 - [x] **Medication Alternatives/Generics**
 - [x] **Medication Master Data Management**nd Pharmacies
-
-Built with ASP.NET Core 9.0 and PostgreSQL | Healthcare Ecosystem |
-HIPAA-Compliant Ready
-
-## Progress: ![Progress](https://geps.dev/progress/68)
 
 ---
 
