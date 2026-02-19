@@ -19,6 +19,7 @@ namespace PIYA_API.Data
         // Healthcare entities
         public DbSet<Hospital> Hospitals { get; set; }
         public DbSet<DoctorProfile> DoctorProfiles { get; set; }
+        public DbSet<PharmacistProfile> PharmacistProfiles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }

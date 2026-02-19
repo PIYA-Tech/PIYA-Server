@@ -225,15 +225,32 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IAzerbaijanPharmaceuticalRegistryService, AzerbaijanPharmaceuticalRegistryService>();
 builder.Services.AddScoped<IDoctorProfileService, DoctorProfileService>();
+builder.Services.AddScoped<IPharmacistLicenseService, PharmacistLicenseService>();
 builder.Services.AddScoped<IHospitalService, HospitalService>();
 
 // Email & Authentication Enhancement Services
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISmsService, SmsService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
+// Google Maps API Service
+builder.Services.AddHttpClient<IGoogleMapsService, GoogleMapsService>();
+
+// Webhook Service
+builder.Services.AddHttpClient<IWebhookService, WebhookService>();
+
 // File Upload Service
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+
+// PDF Export Service
+builder.Services.AddScoped<IPdfExportService, PdfExportService>();
+
+// HMS Integration Service
+builder.Services.AddHttpClient<IHmsIntegrationService, HmsIntegrationService>();
+
+// EHR Integration Service
+builder.Services.AddHttpClient<IEhrIntegrationService, EhrIntegrationService>();
 
 // Cache Service
 builder.Services.AddScoped<ICacheService, CacheService>();

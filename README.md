@@ -220,7 +220,7 @@ graph LR
 - [x] **ValidFrom/ValidTo Period Enforcement**
 - [x] **Privacy-Controlled Visibility (Summary optional)**
 - [x] **Tamper-Proof Token (SHA-256 Hash-based)**
-- [ ] **Certificate PDF Export (Optional)**
+- [x] **Certificate PDF Export (Optional)**
 
 **Implementation Details:**
 
@@ -277,8 +277,8 @@ graph LR
 - [x] **Create UserController**
 - [x] **Create AuthController**
 - [x] **User Role Assignment (Patient/Doctor/Pharmacist)**
-- [ ] **Doctor Profile Extended Fields**
-- [ ] **Pharmacist License Verification**
+- [x] **Doctor Profile Extended Fields**
+- [x] **Pharmacist License Verification**
 
 ### Geolocation Services
 
@@ -359,14 +359,14 @@ graph LR
 
 ### Integration & External Services
 
-- [ ] **Google Maps API Integration**
-- [ ] **Email Service (SendGrid/SMTP)**
-- [ ] **SMS Service (Twilio)**
-- [ ] **Export to PDF (Prescriptions/Certificates)**
-- [ ] **Webhook Support**
-- [ ] **Azerbaijan Pharmaceutical Database Integration**
-- [ ] **Hospital Management System (HMS) Integration**
-- [ ] **Electronic Health Record (EHR) Integration**
+- [x] **Google Maps API Integration**
+- [x] **Email Service (SendGrid/SMTP)**
+- [x] **SMS Service (Twilio)**
+- [x] **Export to PDF (Prescriptions/Certificates)**
+- [x] **Webhook Support**
+- [x] **Azerbaijan Pharmaceutical Database Integration**
+- [x] **Hospital Management System (HMS) Integration**
+- [x] **Electronic Health Record (EHR) Integration**
 
 ### Testing & Documentation
 
