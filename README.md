@@ -329,13 +329,13 @@ graph LR
 
 ### Data Enhancements
 
-- [ ] **Pharmacy Operating Hours**
-- [ ] **Pharmacy Contact Info**
-- [ ] **Pharmacy Services**
-- [ ] **Pharmacy Ratings**
-- [ ] **Search History**
-- [ ] **Appointment Reminders**
-- [ ] **Prescription Refill Reminders**
+- [x] **Pharmacy Operating Hours**
+- [x] **Pharmacy Contact Info**
+- [x] **Pharmacy Services**
+- [x] **Pharmacy Ratings**
+- [x] **Search History**
+- [x] **Appointment Reminders**
+- [x] **Prescription Refill Reminders**
 
 ---
 

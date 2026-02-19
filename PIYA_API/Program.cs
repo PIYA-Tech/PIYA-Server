@@ -249,6 +249,12 @@ builder.Services.AddSingleton<IFcmService, FcmService>();
 builder.Services.AddScoped<IPharmacyStaffService, PharmacyStaffService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 
+// Rating, Search History & Reminder Services
+builder.Services.AddScoped<IPharmacyRatingService, PharmacyRatingService>();
+builder.Services.AddScoped<ISearchHistoryService, SearchHistoryService>();
+builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderService>();
+builder.Services.AddScoped<IPrescriptionRefillReminderService, PrescriptionRefillReminderService>();
+
 // Configure Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>
 {

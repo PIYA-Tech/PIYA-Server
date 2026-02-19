@@ -32,6 +32,12 @@ namespace PIYA_API.Data
         // Pharmacy Staff & Permissions
         public DbSet<PharmacyStaff> PharmacyStaff { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        
+        // Ratings, Search, and Reminders
+        public DbSet<PharmacyRating> PharmacyRatings { get; set; }
+        public DbSet<SearchHistory> SearchHistories { get; set; }
+        public DbSet<AppointmentReminder> AppointmentReminders { get; set; }
+        public DbSet<PrescriptionRefillReminder> PrescriptionRefillReminders { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -203,6 +209,110 @@ namespace PIYA_API.Data
             
             modelBuilder.Entity<DeviceToken>()
                 .HasIndex(dt => dt.UserId);
+            
+            // PharmacyRating relationships
+            modelBuilder.Entity<PharmacyRating>()
+                .HasOne(pr => pr.Pharmacy)
+                .WithMany(p => p.Ratings)
+                .HasForeignKey(pr => pr.PharmacyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<PharmacyRating>()
+                .HasOne(pr => pr.User)
+                .WithMany()
+                .HasForeignKey(pr => pr.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<PharmacyRating>()
+                .HasOne(pr => pr.Prescription)
+                .WithMany()
+                .HasForeignKey(pr => pr.PrescriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            modelBuilder.Entity<PharmacyRating>()
+                .HasIndex(pr => pr.PharmacyId);
+            
+            modelBuilder.Entity<PharmacyRating>()
+                .HasIndex(pr => pr.UserId);
+            
+            modelBuilder.Entity<PharmacyRating>()
+                .HasIndex(pr => new { pr.PharmacyId, pr.UserId });
+            
+            // PharmacyRatingCategories owned entity (stored as JSON)
+            modelBuilder.Entity<PharmacyRating>()
+                .OwnsOne(pr => pr.Categories, categories =>
+                {
+                    categories.ToJson();
+                });
+            
+            // SearchHistory relationships
+            modelBuilder.Entity<SearchHistory>()
+                .HasOne(sh => sh.User)
+                .WithMany()
+                .HasForeignKey(sh => sh.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<SearchHistory>()
+                .HasOne(sh => sh.Coordinates)
+                .WithMany()
+                .HasForeignKey(sh => sh.CoordinatesId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            modelBuilder.Entity<SearchHistory>()
+                .HasIndex(sh => sh.UserId);
+            
+            modelBuilder.Entity<SearchHistory>()
+                .HasIndex(sh => sh.SearchedAt);
+            
+            modelBuilder.Entity<SearchHistory>()
+                .HasIndex(sh => sh.SearchType);
+            
+            // AppointmentReminder relationships
+            modelBuilder.Entity<AppointmentReminder>()
+                .HasOne(ar => ar.Appointment)
+                .WithMany()
+                .HasForeignKey(ar => ar.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<AppointmentReminder>()
+                .HasOne(ar => ar.User)
+                .WithMany()
+                .HasForeignKey(ar => ar.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<AppointmentReminder>()
+                .HasIndex(ar => ar.AppointmentId);
+            
+            modelBuilder.Entity<AppointmentReminder>()
+                .HasIndex(ar => ar.ReminderTime);
+            
+            modelBuilder.Entity<AppointmentReminder>()
+                .HasIndex(ar => ar.IsSent);
+            
+            // PrescriptionRefillReminder relationships
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasOne(prr => prr.Prescription)
+                .WithMany()
+                .HasForeignKey(prr => prr.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasOne(prr => prr.Patient)
+                .WithMany()
+                .HasForeignKey(prr => prr.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasIndex(prr => prr.PrescriptionId);
+            
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasIndex(prr => prr.PatientId);
+            
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasIndex(prr => prr.ReminderDate);
+            
+            modelBuilder.Entity<PrescriptionRefillReminder>()
+                .HasIndex(prr => prr.IsSent);
         }
     }
 }
