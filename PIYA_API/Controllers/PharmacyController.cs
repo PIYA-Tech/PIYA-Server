@@ -63,4 +63,265 @@ public class PharmacyController(ISearchService searchService, IPharmacyService p
         }
         return Ok(pharmacies);
     }
+
+    /// <summary>
+    /// Search pharmacies by single medication availability
+    /// </summary>
+    /// <param name="medicationId">The medication ID to search for</param>
+    /// <param name="latitude">User's latitude (optional, for distance calculation)</param>
+    /// <param name="longitude">User's longitude (optional, for distance calculation)</param>
+    /// <param name="radiusKm">Maximum distance in kilometers (optional)</param>
+    /// <returns>List of pharmacies with the medication in stock, sorted by distance</returns>
+    [HttpGet("search/by-medication/{medicationId}")]
+    public async Task<IActionResult> SearchByMedication(
+        Guid medicationId,
+        [FromQuery] double? latitude = null,
+        [FromQuery] double? longitude = null,
+        [FromQuery] int? radiusKm = null)
+    {
+        try
+        {
+            Coordinates? userLocation = null;
+            if (latitude.HasValue && longitude.HasValue)
+            {
+                userLocation = new Coordinates
+                {
+                    Latitude = latitude.Value,
+                    Longitude = longitude.Value
+                };
+            }
+
+            var results = await _searchService.SearchByMedicationAsync(medicationId, userLocation, radiusKm);
+            
+            if (results == null || results.Count == 0)
+            {
+                return NotFound(new { message = "No pharmacies found with this medication in stock." });
+            }
+
+            return Ok(new
+            {
+                totalResults = results.Count,
+                searchCriteria = new
+                {
+                    medicationId,
+                    radiusKm,
+                    hasLocation = userLocation != null
+                },
+                pharmacies = results
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to search pharmacies by medication", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Search pharmacies that have ALL specified medications in stock
+    /// </summary>
+    /// <param name="request">Request containing list of medication IDs and optional location</param>
+    /// <returns>Pharmacies sorted by stock match percentage and distance</returns>
+    [HttpPost("search/by-multiple-medications")]
+    public async Task<IActionResult> SearchByMultipleMedications([FromBody] MultipleMedicationsSearchRequest request)
+    {
+        try
+        {
+            if (request.MedicationIds == null || request.MedicationIds.Count == 0)
+            {
+                return BadRequest(new { error = "At least one medication ID is required" });
+            }
+
+            Coordinates? userLocation = null;
+            if (request.Latitude.HasValue && request.Longitude.HasValue)
+            {
+                userLocation = new Coordinates
+                {
+                    Latitude = request.Latitude.Value,
+                    Longitude = request.Longitude.Value
+                };
+            }
+
+            var results = await _searchService.SearchByMultipleMedicationsAsync(
+                request.MedicationIds, 
+                userLocation, 
+                request.RadiusKm);
+            
+            if (results == null || results.Count == 0)
+            {
+                return NotFound(new { message = "No pharmacies found with the requested medications." });
+            }
+
+            var pharmaciesWithFullStock = results.Count(r => r.CanFulfillCompletely);
+
+            return Ok(new
+            {
+                totalResults = results.Count,
+                pharmaciesWithFullStock,
+                pharmaciesWithPartialStock = results.Count - pharmaciesWithFullStock,
+                searchCriteria = new
+                {
+                    medicationCount = request.MedicationIds.Count,
+                    radiusKm = request.RadiusKm,
+                    hasLocation = userLocation != null
+                },
+                pharmacies = results
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to search pharmacies by multiple medications", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Search pharmacies that can fulfill an entire prescription
+    /// </summary>
+    /// <param name="prescriptionId">The prescription ID</param>
+    /// <param name="latitude">User's latitude (optional)</param>
+    /// <param name="longitude">User's longitude (optional)</param>
+    /// <param name="radiusKm">Maximum distance in kilometers (optional)</param>
+    /// <returns>Pharmacies that have ALL medications from the prescription in stock</returns>
+    [HttpGet("search/by-prescription/{prescriptionId}")]
+    public async Task<IActionResult> SearchByPrescription(
+        Guid prescriptionId,
+        [FromQuery] double? latitude = null,
+        [FromQuery] double? longitude = null,
+        [FromQuery] int? radiusKm = null)
+    {
+        try
+        {
+            Coordinates? userLocation = null;
+            if (latitude.HasValue && longitude.HasValue)
+            {
+                userLocation = new Coordinates
+                {
+                    Latitude = latitude.Value,
+                    Longitude = longitude.Value
+                };
+            }
+
+            var results = await _searchService.SearchPharmaciesWithFullPrescriptionStockAsync(
+                prescriptionId, 
+                userLocation, 
+                radiusKm);
+            
+            if (results == null || results.Count == 0)
+            {
+                return NotFound(new 
+                { 
+                    message = "No pharmacies found that can fulfill the complete prescription.",
+                    suggestion = "Try searching without radius restriction or contact individual pharmacies."
+                });
+            }
+
+            return Ok(new
+            {
+                totalResults = results.Count,
+                prescriptionId,
+                searchCriteria = new
+                {
+                    radiusKm,
+                    hasLocation = userLocation != null
+                },
+                pharmacies = results
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to search pharmacies by prescription", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Advanced search with composite scoring (distance + stock availability)
+    /// </summary>
+    /// <param name="request">Search request with medications and location</param>
+    /// <returns>Pharmacies sorted by composite score (60% stock match + 40% proximity)</returns>
+    [HttpPost("search/smart")]
+    public async Task<IActionResult> SmartSearch([FromBody] SmartSearchRequest request)
+    {
+        try
+        {
+            if (request.MedicationIds == null || request.MedicationIds.Count == 0)
+            {
+                return BadRequest(new { error = "At least one medication ID is required" });
+            }
+
+            if (!request.Latitude.HasValue || !request.Longitude.HasValue)
+            {
+                return BadRequest(new { error = "User location (latitude and longitude) is required for smart search" });
+            }
+
+            var userLocation = new Coordinates
+            {
+                Latitude = request.Latitude.Value,
+                Longitude = request.Longitude.Value
+            };
+
+            var maxRadius = request.MaxRadiusKm ?? 50;
+
+            var results = await _searchService.SearchAndSortByDistanceAndStockAsync(
+                request.MedicationIds, 
+                userLocation, 
+                maxRadius);
+            
+            if (results == null || results.Count == 0)
+            {
+                return NotFound(new 
+                { 
+                    message = "No pharmacies found within the specified radius.",
+                    maxRadiusSearched = maxRadius
+                });
+            }
+
+            return Ok(new
+            {
+                totalResults = results.Count,
+                algorithm = "Composite Score: 60% stock availability + 40% proximity",
+                searchCriteria = new
+                {
+                    medicationCount = request.MedicationIds.Count,
+                    maxRadiusKm = maxRadius,
+                    userLocation = new { request.Latitude, request.Longitude }
+                },
+                pharmacies = results.Select(r => new
+                {
+                    r.Pharmacy,
+                    r.DistanceKm,
+                    r.StockMatchPercentage,
+                    r.CompositeScore,
+                    r.CanFulfillCompletely,
+                    r.MedicationsInStock,
+                    r.TotalMedicationsRequested,
+                    r.AvailableMedications,
+                    r.MissingMedicationIds
+                })
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to perform smart search", details = ex.Message });
+        }
+    }
+}
+
+// DTOs for request bodies
+public class MultipleMedicationsSearchRequest
+{
+    public List<Guid> MedicationIds { get; set; } = new();
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public int? RadiusKm { get; set; }
+}
+
+public class SmartSearchRequest
+{
+    public List<Guid> MedicationIds { get; set; } = new();
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public int? MaxRadiusKm { get; set; }
 }

@@ -272,6 +272,11 @@ builder.Services.AddScoped<ISearchHistoryService, SearchHistoryService>();
 builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderService>();
 builder.Services.AddScoped<IPrescriptionRefillReminderService, PrescriptionRefillReminderService>();
 
+// Production Readiness Services
+builder.Services.AddScoped<IGdprComplianceService, GdprComplianceService>();
+builder.Services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+builder.Services.AddSingleton<ISecurityHardeningService, SecurityHardeningService>();
+
 // Configure Swagger with JWT support
 builder.Services.AddSwaggerGen(c =>
 {
@@ -311,6 +316,12 @@ app.UseCors(isDevelopment ? "Development" : "PIYAPolicy");
 
 // Add Rate Limiting Middleware
 app.UseMiddleware<PIYA_API.Middleware.RateLimitingMiddleware>();
+
+// Add Security Hardening Middleware
+app.UseMiddleware<PIYA_API.Middleware.SecurityHardeningMiddleware>();
+
+// Add Performance Monitoring Middleware
+app.UseMiddleware<PIYA_API.Middleware.PerformanceMonitoringMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
